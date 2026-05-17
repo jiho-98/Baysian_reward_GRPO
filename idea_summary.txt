@@ -1,0 +1,84 @@
+핵심 아이디어
+- reasoning trajectory를 하나의
+  hypothesis H_i로 보고,
+  evidence E_i를 바탕으로
+  posterior P(H_i|E_i)를 계산해
+  reward로 사용한다.
+- trajectory는
+  [strategy 선택 + reasoning 과정
+  + final answer] 전체를 포함한다.
+- 목표는 test-time selection이 아니라,
+  GRPO 학습에 더 informative한
+  training-time reward를 주는 것이다.
+
+현재 실험 해석
+- 강한 신호는 strategy prior보다
+  evidence likelihood에서 나왔다.
+- correct/incorrect likelihood gap이 커서,
+  현재 heuristic likelihood는
+  최소한 1차 분리력은 있다.
+- uniform prior와 strategy prior의
+  top1 accuracy 차이는 거의 없었다.
+- 대신 strategy prior는
+  advantage 값을 더 다양하게 만들어
+  reward granularity를 높였다.
+- 따라서 현재 claim은
+  "prior가 정답 선택률을 올렸다"가 아니라,
+  "posterior reward shaping을
+  더 세밀하게 만들었다"가 맞다.
+
+현재 한계
+- strict_qwen이어도 fallback_static이 섞여 있어
+  완전한 self-generated strategy setting이 아니다.
+- heuristic evidence는 proof-of-concept 수준이라
+  논문급 claim에는 아직 약하다.
+- process 비중이 높으면
+  오답인데도 posterior가 높게 나올 위험이 있다.
+
+권장 방향
+- short-term:
+  answer-heavy reward로 재실험하고
+  incorrect high posterior를 줄인다.
+- short-term:
+  fallback_static을 제거하고
+  Qwen proposer only 또는
+  retry-only 설정을 만든다.
+- mid-term:
+  Strategy Proposer + Solver를
+  하나의 unified strategy-aware Solver로 합친다.
+- mid-term:
+  heuristic evidence를
+  LLM Judge 또는
+  learned Evidence Analyzer로 교체한다.
+
+학습 로드맵
+- 1단계:
+  frozen/heuristic Judge로
+  Solver-only GRPO.
+- 2단계:
+  Judge를 offline calibration 또는
+  pairwise ranking으로 학습.
+- 3단계:
+  Solver/Judge alternating training 검토.
+- 이유:
+  Solver와 Judge를 동시에 바로 학습하면
+  reward hacking, circularity 위험이 크다.
+
+논문 포인트
+- novelty는 "Bayesian"이라는 이름보다,
+  reasoning trajectory에 대해
+  prior + evidence likelihood를 결합한
+  posterior reliability reward를
+  정의했다는 점이다.
+- outcome-only reward가 0/1이면,
+  이 방법은 correct_complete,
+  weak_proof, near-correct,
+  finalization_error, wrong_direction 등을
+  더 세밀하게 구분할 수 있다.
+
+한 줄 결론
+- 지금 결과는 Bayesian reward가
+  유망하다는 초기 신호이고,
+  다음 핵심 과제는 unified Solver,
+  fallback 제거, answer-heavy reward,
+  learned Judge, staged GRPO다.

@@ -1,0 +1,248 @@
+이번 연구 아이디어는 교수님께서 공유해주신 Bayesian adaptive RL 관련
+논문을 출발점으로, LLM reasoning 향상을 기존 answer-only RLVR/GRPO
+관점이 아니라 Bayesian reliability optimization 관점으로 재해석하는
+방향에서 시작되었다.
+
+[1. 문제의식과 핵심 아이디어]
+
+기존 answer-only GRPO는 하나의 문제에 대해 여러 reasoning rollout을
+생성한 뒤, 최종 답이 맞으면 reward 1, 틀리면 reward 0을 부여하는
+방식이다. 이 방식은 구현이 단순하고 deterministic correctness를
+사용하기 때문에 reward noise가 낮다는 장점이 있지만, reasoning
+과정의 질을 거의 반영하지 못한다는 한계가 있다.
+
+예를 들어, 정답을 맞혔더라도 reasoning이 약하거나 우연히 맞춘
+rollout과, 정답이면서 step-by-step reasoning이 타당하고 완전한
+rollout이 모두 같은 reward를 받는다. 반대로 오답 rollout이라도 일부
+step이나 strategy는 타당할 수 있는데, answer-only reward에서는 전부
+0으로 처리된다.
+
+이 문제의식에서 출발하여, 나는 하나의 수학 문제에서 생성된 여러
+rollout을 단순한 샘플이 아니라 각각의 strategy-conditioned reasoning
+hypothesis로 보았다. 즉, 각 rollout tau_i 는 특정 풀이 전략 H_i 에
+의해 생성된 하나의 hypothesis이고, 이 hypothesis가 얼마나 신뢰할 수
+있는지는 아래 두 요소로 평가할 수 있다고 보았다.
+
+- strategy prior: P(H_i | q)
+- evidence likelihood: P(E_i | H_i, q)
+
+여기서 strategy prior는 문제를 봤을 때 해당 strategy가 얼마나
+적절해 보이는지를 나타내고, evidence likelihood는 실제 rollout의
+reasoning evidence가 해당 strategy의 신뢰성을 얼마나 지지하는지를
+나타낸다.
+
+최종적으로는 이 둘을 결합하여 posterior-normalized reward를 만들고,
+이를 GRPO의 학습 신호로 사용하는 것이 핵심 아이디어이다. 개념적으로는
+다음과 같이 정리할 수 있다.
+
+R_i^Bayes is proportional to
+P(H_i | q) * P(E_i | H_i, q),
+
+and the final reward is normalized within the rollout group by dividing by
+the sum over all rollouts j from the same problem.
+
+[2. 단계적 실험 설계]
+
+실험은 한 번에 완전한 Bayesian reward를 적용하기보다, reward 구성
+요소를 단계적으로 검증하는 방식으로 진행했다.
+
+먼저 answer-only GRPO를 baseline으로 두고, Big-Math-RL-Verified
+데이터셋에서 train 1000 / eval 100의 small-scale setting으로
+실험했다. 이때 Base는 0.55, answer-only n=4는 0.58, answer-only
+n=8은 0.60으로 성능이 단조 증가했다. 이는 answer-only reward가
+sparse하기는 하지만 deterministic correctness reward이기 때문에
+low-noise signal로 안정적으로 작동할 수 있음을 보여준다.
+
+이후 초기에는 내가 이를 "Bayesian GRPO"라고 불렀지만, 실제로는
+non-uniform prior와 posterior normalization까지 포함한 완전한
+Bayesian reward가 아니라, uniform prior를 가정한 상태에서 evidence
+likelihood를 직접 reward로 사용한 likelihood reward ablation에
+가까웠다.
+
+uniform prior 조건에서는 모든 rollout의 P(H_i | q)가 동일하므로,
+Bayesian posterior에서 prior는 rollout 간 차이를 만들지 못하고,
+reward는 사실상 P(E_i | H_i, q), 즉 evidence likelihood에 의해
+결정된다. 따라서 이 단계의 목적은 "full Bayesian reward가 잘
+되는가?"가 아니라, "Bayesian reward의 핵심 구성 요소인 evidence
+likelihood가 GRPO reward로 유용한가?"를 먼저 확인하는 것이었다.
+
+이 likelihood reward는 answer correctness, step validity,
+proof completeness, strategy compliance, consistency를 가중합하여
+계산했다. 특히 AH 0.80 setting에서는
+
+0.80 * answer + 0.20 * evidence
+
+형태로 answer correctness를 strong anchor로 유지하면서 reasoning
+evidence를 보조 신호로 추가했다.
+
+[3. Small-Scale 결과와 해석]
+
+초기 small-scale 실험 결과는 reward calibration의 중요성을
+보여주었다.
+
+- Uniform likelihood reward 0.70/0.30:
+  n=4에서는 0.60으로 좋은 성능을 보였지만, n=8에서는 0.55로 붕괴했다.
+- Answer-heavy likelihood reward 0.80/0.20:
+  n=4에서는 0.56으로 낮았지만, n=8에서는 0.63으로 전체 small-scale
+  실험 중 가장 높은 성능을 보였다.
+
+이는 rollout 수가 늘어날수록 partially correct 또는
+plausible-but-wrong reasoning이 많이 등장하고, evidence 비중이 너무
+높으면 이런 그럴듯한 오답 rollout에도 과도한 reward가 들어가는
+reward leakage가 발생할 수 있음을 시사한다.
+
+반대로 answer correctness를 강하게 유지한 상태에서 evidence를
+auxiliary signal로 넣으면, n=8 exploration의 이점을 살리면서도
+reward noise를 통제할 수 있었다. 즉, more rollouts는 reward noise가
+통제될 때만 도움이 되며, n=8 exploration의 이점을 살리기 위해서는
+correctness anchor가 필요하다는 결론을 얻었다.
+
+[4. Fair 300 설정 결과]
+
+이후 더 공정한 비교를 위해 Big-Math-RL-Verified에서 중복 문제를
+제거하고 seed=42로 고정한 fair split을 만들었다. train은 3000문제,
+eval은 300문제로 구성했고, eval set은 easy 67개, medium 233개,
+hard 0개였다.
+
+모든 모델은 동일한 Qwen/Qwen2.5-3B-Instruct base model, 동일한 seed,
+동일한 rollout 수 n=8, 동일한 training steps 500, 동일한 fixed
+metadata split을 사용했으며, 차이는 reward design만 두었다.
+
+이 fair 300 setting에서:
+
+- Base: 54.67%
+- Answer-only n8: 54.00%
+- Answer-heavy likelihood reward n8: 58.33%
+
+여기서 answer-only n8은 base를 넘지 못했고, AH likelihood reward는
+base와 answer-only를 모두 넘었다.
+
+특히 difficulty-wise 분석에서 easy는 answer-only와 AH가 모두
+70.15%로 동일했지만, medium에서는
+
+- base: 51.50%
+- answer-only: 49.36%
+- AH: 54.94%
+
+로 AH가 가장 높았다. 이는 AH likelihood reward의 이득이 단순히
+쉬운 문제에서 나온 것이 아니라, 더 reasoning이 필요한 medium
+문제에서 발생했음을 보여준다.
+
+[5. Bayesian Full n8 결과]
+
+마지막으로, 진짜 Bayesian reward에 가까운 Bayesian Full n8 실험을
+진행했다. 이 실험에서는 prior를 uniform으로 두지 않고, LLM Analyzer가
+각 rollout의 strategy만 보고 strategy suitability를 0~4점으로 평가한
+뒤 softmax를 통해 P(H_i | q)를 계산했다.
+
+Evidence likelihood는 이전과 같이 answer correctness, step validity,
+proof completeness, strategy compliance, consistency를 기반으로
+
+L_i = P(E_i | H_i, q)
+
+를 근사했다. 이후 아래 값을 계산했다.
+
+score_i = P(H_i | q)^lambda * L_i
+
+그리고 같은 문제에서 생성된 8개 rollout 전체의 합으로 나누어
+posterior-normalized reward를 만들었다.
+
+reward_i = score_i / sum_j score_j
+
+즉, Bayesian Full에서는 실제로
+
+prior * likelihood -> posterior normalization
+
+구조가 GRPO reward에 적용되었다.
+
+이 실험 결과 Bayesian Full n8은 60.00%를 기록하여 전체 모델 중 최고
+성능을 보였다.
+
+- Base 대비: +5.33%p
+- Answer-only 대비: +6.00%p
+- AH likelihood reward 대비: +1.67%p
+
+특히 medium difficulty에서 Bayesian Full은 57.08%를 기록하여
+base 51.50%, answer-only 49.36%, AH 54.94%를 모두 넘어섰다.
+Easy에서는 answer-only, AH, Full이 모두 70.15%로 동일했기 때문에,
+Bayesian Full의 추가 이득은 거의 medium 문제에서 나온 것으로
+해석된다.
+
+이는 non-uniform strategy prior와 posterior normalization이 단순
+likelihood reward보다 더 유용한 학습 신호를 줄 수 있음을 보여주는
+강한 preliminary evidence이다.
+
+[6. bayesian_reward_debug.jsonl 분석]
+
+추가로 bayesian_reward_debug.jsonl을 분석하여 Bayesian Full reward가
+실제로 의도한 대로 작동했는지 확인했다.
+
+로그에는 총 4000개 rollout이 있었고, 이는 500개 group x 8 rollout
+구조였다. 각 group에서 posterior reward의 합은 거의 정확히 1로
+normalization되었고, posterior fallback은 0%였다. 즉, 코드가 의도한
+대로 8개 rollout 단위에서
+
+P(H_i | q)^lambda * L_i
+
+를 계산하고, 전체 합으로 나누어 posterior reward를 만든 것을
+확인했다.
+
+추가 분석 결과는 다음과 같다.
+
+- prior judge fallback: 약 0.4%
+- evidence fallback: 약 4.2%
+- judge label inconsistency: 약 15.95%
+
+Prior suitability는 대부분 3 또는 4에 몰려 있었고, suitability가
+높을수록 평균 correctness와 reward가 상승하는 경향은 있었지만,
+prior만으로 정답 rollout을 고르는 능력은 강하지 않았다.
+
+실제로 group별 top-1 correctness를 보면:
+
+- top prior: 57.8%
+- top likelihood: 82.2%
+- top posterior: 81.6%
+
+이는 prior가 단독으로 강한 predictor라기보다는 likelihood를 보조하고
+reward separation을 키우는 역할을 했다는 것을 의미한다. 실제로
+posterior entropy는 normalized likelihood entropy보다 낮았고,
+posterior top1-top2 gap은 likelihood보다 커져서 posterior reward가 더
+sharp한 학습 신호를 제공했을 가능성이 있다.
+
+또한 정답 rollout이 존재한 411개 group 중 408개에서 posterior top-1이
+정답 rollout을 선택했으므로, posterior reward가 대부분 올바른
+rollout에 reward mass를 잘 배분한 것으로 볼 수 있다. 다만
+wrong-but-high-posterior 케이스도 일부 존재했기 때문에, 향후
+prior strength, evidence judge calibration, wrong rollout reward
+suppression이 중요한 개선 포인트로 남아 있다.
+
+[7. 종합 정리와 다음 방향]
+
+전체적으로 보면, 이번 연구 과정은 answer-only reward의 sparse signal
+문제에서 출발해, 먼저 uniform prior 조건에서 likelihood reward가
+유효한지 확인하고, 이후 answer correctness를 anchor로 둔
+AH likelihood reward를 실험한 뒤, 마지막으로 non-uniform strategy
+prior와 evidence likelihood를 결합한 posterior-normalized Bayesian
+Full reward로 확장한 흐름이다.
+
+결과적으로 answer-only GRPO는 small-scale에서는 안정적이었지만
+fair 300 setting에서는 base를 넘지 못했고, AH likelihood reward는
+answer-only보다 좋은 성능을 보였으며, 최종 Bayesian Full reward가
+가장 높은 성능을 기록했다. 따라서 현재까지의 결과는 Bayesian
+posterior reward가 answer-only reward보다 더 informative한 GRPO
+학습 신호가 될 가능성을 강하게 보여준다.
+
+다만 아직 single seed, 300문제 eval, hard difficulty 부재라는 한계가
+있기 때문에, 최종적으로는 multi-seed, larger eval, hard subset
+평가가 필요하다.
+
+다음 연구 방향은 단순히 더 큰 Solver를 학습하는 것이 아니라,
+reward debug log에서 축적된 problem, strategy, reasoning, final
+answer, correctness, prior suitability, evidence score, likelihood,
+posterior reward, error type 데이터를 이용해 Analyzer 자체를
+학습시키는 것이다.
+
+이를 통해 Analyzer가 P(H_i | q)와 P(E_i | H_i, q)를 더 정확히
+추정하게 만들고, 개선된 Analyzer가 다시 Solver에게 더 나은 reward를
+제공하는 Solver-Analyzer co-evolution loop로 확장하는 것이 최종
+목표이다.

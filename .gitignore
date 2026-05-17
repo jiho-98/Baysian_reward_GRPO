@@ -1,0 +1,17 @@
+.env
+hf_cache/
+logs/
+results/
+__pycache__/
+*.pyc
+.venv/
+.venv_*/
+outputs/
+*.log
+*.out
+*.err
+*.pt
+*.bin
+*.safetensors
+*.parquet
+*.ckpt

@@ -1,0 +1,435 @@
+전체 한 줄 요약
+- 지금까지의 실험은
+  "Bayesian posterior reward가
+  실제 GRPO에 넣을 만한
+  reward signal인가?"를 확인하는
+  사전 reward-analysis였다.
+
+실험이 실제로 한 일
+- 아직 Qwen 자체를 업데이트한 것은 아니다.
+- MATH-500에서 100문제를 뽑고,
+  문제당 8개의 reasoning rollout을 만들었다.
+- 각 rollout에 대해
+  answer correctness,
+  step validity,
+  proof completeness,
+  strategy compliance,
+  consistency,
+  error type을 사용해 likelihood를 계산했다.
+- 여기에 prior를 결합해
+  posterior reward를 만들었다.
+- 핵심은 "정답만 맞았는가?"가 아니라,
+  "이 trajectory가 전략적으로 타당하고
+  증거상 신뢰할 만한가?"를
+  점수화해 본 것이다.
+
+Bayesian 해석
+- rollout i는 hypothesis H_i다.
+- rollout에서 관찰된 정보는 evidence E_i다.
+- posterior는
+  P(H_i | E_i) ∝ P(H_i) P(E_i | H_i)
+  로 해석한다.
+- prior는 처음에 그 strategy / rollout이
+  얼마나 유망한지다.
+- likelihood는 실제 풀이 결과와 과정 evidence를
+  본 뒤 그 rollout이 좋은 hypothesis일
+  가능성을 평가하는 값이다.
+- posterior는 prior와 likelihood를 결합한
+  최종 reliability reward다.
+
+1. full reward + uniform prior
+- weight:
+  answer 0.40
+  step 0.25
+  proof 0.20
+  strategy 0.10
+  consistency 0.05
+- 정답 40%, 과정 60% 구조였다.
+- prior는 모든 rollout을
+  처음에 동일하게 1/8로 봤다.
+
+핵심 결과
+- posterior top1 = 0.39
+- likelihood top1 = 0.39
+- outcome-only top1 = 0.39
+- oracle best-of-N = 0.39
+- random = 0.24
+- self-consistency = 0.24
+
+해석
+- 100문제 중 39문제에서만
+  정답 rollout이 하나 이상 있었다.
+- 나머지 61문제는
+  모든 rollout이 오답이었다.
+- 따라서 어떤 selector도
+  0.39를 넘을 수 없었다.
+- 이 결과는
+  "posterior가 outcome-only보다
+  더 잘 골랐다"가 아니라,
+  "정답 rollout이 존재할 때 posterior가
+  그 정답을 놓치지 않았다"는
+  sanity check에 가깝다.
+
+좋았던 점
+- avg_likelihood_correct ≈ 0.7776
+- avg_likelihood_incorrect ≈ 0.0370
+- likelihood gap ≈ 0.7406
+- heuristic likelihood가
+  정답 rollout과 오답 rollout을
+  매우 강하게 분리했다.
+- outcome-only advantage diversity는
+  약 1.31이었지만,
+  posterior advantage diversity는
+  약 4.34였다.
+- 즉, posterior reward는
+  GRPO용 graded trajectory reward로
+  훨씬 더 풍부했다.
+
+문제점
+- incorrect_but_high_posterior_count = 61
+- wrong_direction_high_posterior_count = 0
+- 완전히 틀린 방향은 잘 막았지만,
+  finalization error,
+  valid-but-incomplete 같은
+  "그럴듯한 오답"이
+  높은 posterior를 받았다.
+- 원인은 answer 0.40,
+  process 0.60 구조로 보는 것이 자연스럽다.
+
+2. strategy prior 실험
+- uniform prior 대신,
+  문제에 더 적절해 보이는 strategy에
+  더 높은 prior를 주는 방식이다.
+- 질문은 이것이었다:
+  "좋은 전략을 prior에 넣으면
+  posterior가 더 좋은 rollout을 고르거나,
+  적어도 reward 분포가 더 세밀해지는가?"
+
+결과 해석
+- 이전 full 0.4 strategy prior run에서는
+  posterior top1 = 0.45
+  oracle best-of-N = 0.45
+- 이 역시 oracle을 넘은 것이 아니라,
+  그 run에서 정답 rollout이 있던 문제가
+  45개였다는 뜻에 가깝다.
+- 하지만 posterior advantage unique values는
+  약 5.57로 uniform보다 높아졌다.
+- posterior entropy는 낮아졌고,
+  top1-top2 gap은 커졌다.
+- 즉, strategy prior는
+  selection accuracy를 직접 올렸다기보다,
+  reward distribution을
+  더 sharp하고 세밀하게 만들었다.
+
+offline prior 비교
+- 같은 rollout pool을 고정한 뒤
+  uniform prior와 strategy prior를
+  다시 계산했다.
+- posterior top1 accuracy는
+  uniform = 0.45
+  strategy = 0.45
+- 즉, 동일 rollout pool에서는
+  strategy prior가
+  top1 정답 선택률을 올리지 못했다.
+- 하지만 posterior advantage unique values는
+  4.23 → 5.57로 증가했다.
+- 결론:
+  strategy prior는 main selector라기보다,
+  GRPO용 advantage signal을
+  더 풍부하게 만드는
+  reward-shaping component에 가깝다.
+
+3. answer-heavy + uniform prior
+- weight:
+  answer 0.70
+  step 0.10
+  proof 0.10
+  strategy 0.05
+  consistency 0.05
+- 목적은
+  "과정은 그럴듯하지만 오답"인 rollout의
+  high posterior를 줄이는 것이었다.
+- 직관적으로는
+  "수학에서는 정답이
+  가장 강한 anchor여야 한다"
+  는 가설을 본 것이다.
+
+핵심 결과
+- posterior top1 = 0.44
+- likelihood top1 = 0.44
+- outcome-only top1 = 0.44
+- oracle best-of-N = 0.44
+
+해석
+- 0.39 → 0.44로 올랐지만,
+  oracle도 같이 0.44가 되었기 때문에
+  reward weight만의 효과라고
+  단정할 수는 없다.
+- 이번 run에서는
+  정답 rollout이 존재한 문제가
+  애초에 44개였다.
+- 즉, top1 상승에는
+  rollout pool 변화도 섞여 있다.
+
+진짜 중요한 변화
+- avg_likelihood_correct ≈ 0.8246
+- avg_likelihood_incorrect ≈ 0.0201
+- likelihood gap ≈ 0.8045
+- 이전 full 0.4 uniform보다
+  정답/오답 분리가 더 강해졌다.
+- incorrect high posterior count:
+  61 → 50
+- posterior mass on correct:
+  0.355 → 0.4133
+- 즉, answer-heavy는
+  posterior mass를 정답 쪽으로
+  더 안정적으로 모아주고,
+  오답 high posterior를 줄였다.
+
+trade-off
+- posterior advantage unique values:
+  4.34 → 4.18
+- 정답 중심으로 안정화되면서
+  process-based graded signal은
+  약간 줄었다.
+- 그래도 outcome-only의
+  약 1.35보다 훨씬 높다.
+- 현재 해석은 이렇다:
+  0.7 answer-heavy reward가
+  0.4 full reward보다
+  RL에 넣기 더 안정적일 가능성이 높다.
+
+4. answer-heavy + strategy prior
+- 지금까지의 두 개선 방향을 결합했다.
+- answer correctness 0.70의 안정적인 likelihood
+  + strategy suitability prior 구조다.
+- 설정:
+  MATH-500 sample 100문제
+  rollout 8개
+  Qwen2.5-7B-Instruct
+  temperature 0.7
+  reward_ablation = answer_heavy
+  prior_mode = strategy_suitability
+
+핵심 결과
+- posterior top1 = 0.46
+- likelihood top1 = 0.46
+- outcome-only top1 = 0.46
+- oracle best-of-N = 0.46
+- random = 0.24
+- self-consistency = 0.27
+- posterior_minus_likelihood_top1_delta = 0.0
+
+해석
+- 100문제 중 46문제에서
+  정답 rollout이 하나 이상 있었다.
+- posterior는 그 문제들에서
+  정답 rollout을 잘 선택했다.
+- 하지만 posterior top1과
+  likelihood top1이 같으므로,
+  strategy prior가 top1 accuracy를
+  직접 올렸다고 주장하기는 어렵다.
+
+가장 유망한 점
+- avg_likelihood_correct ≈ 0.8265
+- avg_likelihood_incorrect ≈ 0.0194
+- likelihood gap ≈ 0.8071
+- posterior mass on correct ≈ 0.4334
+- posterior entropy ≈ 1.6445
+- top1-top2 gap ≈ 0.1486
+- answer-heavy가 정답/오답 분리를 안정화하고,
+  strategy prior가 posterior를
+  더 sharp하게 만든 것으로 볼 수 있다.
+
+reward signal 관점
+- posterior advantage unique values = 5.56
+- answer-heavy uniform 4.18보다 높고,
+  outcome-only 1.36보다 압도적으로 높다.
+- strategy prior의 핵심 역할은
+  정답률을 직접 올리는 것이 아니라,
+  같은 문제의 8개 rollout 사이에
+  더 세밀한 advantage 차이를 만들어
+  GRPO 신호를 풍부하게 하는 것이다.
+- outcome-only는
+  "맞음/틀림"만 알려주지만,
+  posterior는
+  correct_complete,
+  correct_weak_proof,
+  finalization_error,
+  valid_but_incomplete,
+  wrong_direction 등을
+  다르게 평가할 수 있다.
+
+부작용
+- incorrect high posterior count:
+  50 → 56
+- strategy prior가
+  일부 그럴듯한 오답도
+  함께 밀어올렸다는 뜻이다.
+- 다행히
+  wrong_direction high posterior count는
+  여전히 0이다.
+- 하지만 finalization error,
+  valid-but-incomplete 계열 오답에 대한 penalty는
+  더 정교해져야 한다.
+
+5. fallback_static 문제
+- 실험 전반에서 계속 확인된
+  중요한 한계다.
+- strict Qwen으로 rollout generation은
+  전부 Qwen이 했지만,
+  strategy source가 항상
+  Qwen proposer인 것은 아니었다.
+- answer-heavy strategy prior 예시:
+  qwen_proposer = 480 rollout
+  fallback_static = 320 rollout
+  문제 단위로는
+  qwen proposer 60문제,
+  fallback static 40문제였다.
+- source-wise posterior top1:
+  qwen proposer 문제 = 0.5
+  fallback static 문제 = 0.4
+- 즉, Qwen이 직접 strategy를 생성한 경우가
+  static fallback보다
+  더 좋은 경향이 있었다.
+
+왜 이게 연구 claim에 치명적인가
+- 최종적으로 주장하고 싶은 것은
+  "모델이 스스로 전략을 떠올리고,
+  그 전략에 따라 풀며,
+  posterior reward가
+  trajectory 전체를 평가한다"는 것이다.
+- 그런데 static fallback이 섞이면
+  일부 문제의 strategy는
+  모델이 만든 것이 아니라
+  사람이 넣은 template가 된다.
+- 그러면
+  "strategy-aware Solver가
+  전략 생성 능력까지 학습한다"는
+  주장이 약해진다.
+
+권장 수정 방향
+- fallback_static을 제거한다.
+- Qwen proposer가 실패하면 retry한다.
+- 더 좋은 방향은 unified solver prompt다.
+- 각 rollout이
+  [Strategy]
+  [Reasoning]
+  [Final Answer]
+  를 한 번에 생성하게 한다.
+- 이 구조에서는 strategy가
+  외부 hint가 아니라
+  Solver 출력의 일부가 된다.
+
+지금까지 얻은 가장 큰 인사이트 1
+- Bayesian reward의 핵심 성능은
+  현재 strategy prior보다
+  evidence likelihood에서 나온다.
+- 모든 실험에서
+  correct/incorrect likelihood gap은 매우 컸다.
+- answer-heavy로 갈수록
+  그 gap은 더 커졌다.
+- 반면 strategy prior는
+  top1 accuracy를 직접 개선하지는 못했지만,
+  posterior advantage diversity와
+  posterior sharpness를 높였다.
+- 따라서 현재 안전한 주장은
+  "strategy prior가 성능을 올렸다"가 아니라,
+  "evidence likelihood가
+  좋은 trajectory와 나쁜 trajectory를
+  강하게 구분하고,
+  strategy prior는 reward granularity를 높인다"
+  이다.
+
+지금까지 얻은 가장 큰 인사이트 2
+- posterior reward의 가치는
+  best-of-N selection accuracy보다
+  학습 신호의 질에 있다.
+- 지금까지 posterior top1은
+  outcome-only top1과 계속 같았다.
+- 이는 posterior가 outcome-only보다
+  더 잘 고른다는 증거는 아니다.
+- 하지만 outcome-only는
+  정답이면 1, 오답이면 0이라서
+  같은 정답끼리,
+  같은 오답끼리의 차이를
+  거의 반영하지 못한다.
+- 반면 posterior reward는
+  reasoning quality 차이를 반영한다.
+- GRPO는 top1만 고르는 알고리즘이 아니라,
+  같은 문제의 rollout들 사이에서
+  평균보다 좋은 trajectory를 강화하고
+  나쁜 trajectory를 억제하는 방식이므로,
+  이 graded signal이 중요하다.
+
+현재 결론
+- Bayesian posterior reward는
+  아직 outcome-only보다
+  selection accuracy가 높다는 증거는 없다.
+- 하지만 outcome-only보다
+  훨씬 풍부하고 세밀한
+  trajectory-level reward signal을 준다는
+  증거는 강하다.
+- 특히 answer-heavy strategy prior는
+  correct/incorrect separation이 가장 강하고,
+  posterior mass on correct도 높고,
+  advantage diversity도 높아서
+  현재까지 가장 유망한 reward 후보다.
+- 다만
+  incorrect high posterior,
+  fallback static,
+  heuristic evidence 한계는
+  여전히 남아 있다.
+
+앞으로의 3단계
+- 1단계:
+  같은 rollout pool을 고정하고
+  0.4 full,
+  0.7 answer-heavy,
+  uniform prior,
+  strategy prior를
+  offline 재계산해서
+  generation randomness 없이 비교한다.
+- 2단계:
+  fallback_static을 제거하고
+  Qwen이 스스로 strategy를 생성하거나,
+  unified solver 방식으로
+  strategy + reasoning + final answer를
+  한 번에 생성하게 한다.
+- 3단계:
+  현재 heuristic Evidence Analyzer를
+  장기적으로
+  LLM Judge 또는 learned Judge로 바꾼다.
+- 이유:
+  자연어 reasoning의
+  step validity,
+  proof completeness,
+  strategy compliance,
+  consistency는
+  고정 rule만으로
+  안정적으로 평가하기 어렵다.
+
+최종 큰 가설
+- 기존 outcome-only RL은
+  "정답을 맞혔는가?"만 보고 강화한다.
+- 반면 이 방법은
+  rollout을 strategy-conditioned
+  reasoning trajectory로 보고,
+  그 trajectory가 얼마나 신뢰 가능한지
+  Bayesian posterior reward로 평가한다.
+- Solver는 high-posterior trajectory를
+  더 자주 생성하도록 학습될 수 있고,
+  장기적으로 Judge는
+  더 좋은 reasoning과
+  그럴듯한 오답을 더 잘 구분하도록
+  학습될 수 있다.
+- 즉,
+  Solver 강화
+  + Judge 강화
+  + Bayesian posterior reward
+  를 통해
+  단순 정답 보상보다 더 정교한
+  reasoning improvement framework를
+  만들 수 있다는 것이
+  지금까지 실험이 지지하는
+  핵심 방향이다.

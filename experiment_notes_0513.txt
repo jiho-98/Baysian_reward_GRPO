@@ -1,0 +1,55 @@
+1. 오늘 실험의 전체 의미
+
+오늘 돌린 실험은 RL 학습 실험이 아니라 reward-analysis 실험이야. 즉, Qwen을 업데이트한 게 아니라, 같은 문제에서 여러 rollout을 만들고 네가 설계한 Bayesian posterior reward가 좋은 rollout과 나쁜 rollout을 잘 구분하는지 확인한 단계야. 오늘 핵심은 full reward, uniform prior, strategy_suitability prior, 그리고 offline prior recompute를 통해 posterior reward의 성질을 분해해본 것이야.
+
+2. Uniform prior 실험에서 알 수 있었던 것
+
+Uniform prior에서는 모든 rollout을 처음에는 동일하게 보고 posterior를 계산했어. 여기서 random, self-consistency보다 posterior/outcome/likelihood selection이 더 좋게 나왔지만, outcome-only, likelihood, posterior, oracle best-of-N이 모두 0.39로 같았어. 이건 이상한 결과라기보다, 100문제 중 39문제에서만 8개 rollout 중 정답이 하나 이상 있었고, reward가 그 정답 rollout을 잘 골랐다는 뜻이야. 하지만 이 결과만으로 posterior가 outcome-only보다 더 좋다고 말할 수는 없어. 이미 answer correctness가 likelihood에 들어가 있기 때문에, 정답 rollout이 있으면 likelihood/posterior가 oracle처럼 행동할 수 있기 때문이야.
+
+3. Strategy prior 실험에서 알 수 있었던 것
+
+Strategy prior run에서는 전체 top1 accuracy가 0.45로 올라갔어. 하지만 중요한 점은 posterior, likelihood, outcome-only, oracle best-of-N이 모두 0.45로 같이 올라갔다는 거야. 즉, 이 상승은 strategy prior가 selection을 더 잘해서라기보다, 이번 run에서 정답 rollout이 존재한 문제가 45개로 늘어난 영향이 커 보여. 실제로 strategy prior run은 100문제, 800 rollout이 정확히 생성됐고, num_problems_with_any_correct_rollout = 45, num_problems_with_no_correct_rollout = 55였어.
+
+4. Offline recompute로 prior 효과를 분리한 결과
+
+가장 중요한 건 offline 재계산이야. 같은 strategy prior run의 rollout_records.jsonl 800개를 고정하고, posterior만 uniform prior와 strategy prior로 다시 계산했어. 결과적으로 posterior_top1_accuracy는 둘 다 0.45였고, delta는 0.0이었어. 즉, 동일 rollout pool에서는 strategy prior가 top1 정답 선택률을 개선하지 못했다는 뜻이야. 따라서 오늘 기준으로는 “strategy prior가 성능을 올렸다”가 아니라, “좋은 rollout pool이 생성된 run에서 0.45가 나왔다”고 보는 게 더 정확해.
+
+5. Strategy prior가 그래도 준 긍정적 신호
+
+Strategy prior가 완전히 의미 없는 건 아니야. offline recompute에서 posterior_advantage_unique_values_per_problem_mean이 uniform에서는 4.23, strategy prior에서는 5.57로 증가했어. 즉, strategy prior는 정답 top1을 더 잘 고르지는 못했지만, 같은 문제 안의 8개 rollout에 reward/advantage를 더 세밀하게 나눠줬어. 이건 GRPO 입장에서는 의미가 있어. outcome-only는 거의 0/1 신호만 주지만, strategy prior가 들어간 posterior는 더 다양한 trajectory-level learning signal을 줄 수 있기 때문이야.
+
+6. 하지만 strategy prior의 부작용도 확인됨
+
+동시에 부정적인 신호도 있었어. offline recompute에서 incorrect_but_high_posterior_count가 uniform prior에서는 46, strategy prior에서는 50으로 증가했어. 또 posterior_mass_on_correct_mean도 uniform 0.3984에서 strategy 0.3960으로 아주 조금 줄었고, correct/incorrect posterior gap도 약간 줄었어. 즉, strategy prior는 reward를 더 다양하게 만들었지만, 그 다양성이 항상 정답 방향으로만 작동한 것은 아니야. 현재 strategy prior는 selection improvement보다는 reward shaping 역할에 가깝다고 봐야 해.
+
+7. 오늘 실험에서 가장 강한 신호는 likelihood/evidence
+
+오늘 결과에서 가장 강한 긍정 신호는 strategy prior가 아니라 likelihood/evidence 설계야. Strategy prior run에서 avg_likelihood_correct = 0.7782, avg_likelihood_incorrect = 0.0386, gap이 0.7397이었어. 이건 네 evidence-based likelihood가 정답 rollout과 오답 rollout을 매우 강하게 분리하고 있다는 뜻이야. 즉, 현재 Bayesian reward의 main engine은 prior가 아니라 answer correctness + step validity + proof completeness + strategy compliance + consistency + error type factor로 구성된 likelihood라고 보는 게 맞아.
+
+8. Error type factor는 어느 정도 작동함
+
+Error type 분석도 좋은 신호가 있어. Strategy prior run에서 wrong_direction_high_posterior_count = 0이었고, error type별 posterior 평균도 correct_complete가 가장 높고 wrong_direction이 가장 낮았어. 특히 correct_complete = 0.249, correct_weak_proof = 0.153, valid_but_incomplete = 0.117, wrong_direction = 0.028 순서로 나와서, 완전히 잘못된 방향의 reasoning을 낮게 누르는 역할은 하고 있어. 다만 incorrect_but_high_posterior_count = 50은 여전히 존재하므로, finalization error나 valid-but-incomplete 류의 오답이 너무 높게 평가되는 문제는 남아 있어.
+
+9. Qwen proposer의 가능성
+
+또 하나 중요한 신호는 Qwen proposer 쪽이 fallback static보다 훨씬 좋았다는 점이야. Strategy prior run에서 Qwen proposer가 사용된 64문제는 oracle/posterior accuracy가 0.53125였고, fallback static 36문제는 0.3056이었어. 이건 단순 prior 효과라기보다는, 좋은 strategy proposal이 좋은 rollout pool을 만들 가능성을 보여줘. 따라서 나중에 Solver 다음으로 학습시킬 agent를 고른다면, Strategy/Prior Proposer Agent가 가장 자연스러운 후보라는 근거가 생겼어.
+
+10. 오늘 실험으로 정리되는 핵심 결론
+
+오늘 실험으로 알게 된 것은 세 가지야. 첫째, Bayesian posterior reward는 정답 rollout과 오답 rollout을 강하게 분리하므로 GRPO reward 후보로 충분히 유망하다. 둘째, strategy prior는 top1 accuracy를 직접 올리지는 못했지만, posterior advantage를 더 세밀하게 만들어 학습 신호를 풍부하게 만들 가능성이 있다. 셋째, 현재 reward의 핵심 성능은 strategy prior가 아니라 likelihood/evidence 설계에서 나온다.
+
+11. 다음 방향
+
+다음은 answer-heavy reward를 해야 해. 지금 full reward는 answer correctness 0.40, process 0.60이라 오답인데 과정이 그럴듯한 rollout이 high posterior를 받을 수 있어. 그래서 answer correctness를 0.70 정도로 올리고 process를 0.30으로 낮춰서, 정답 anchor를 강화하면서 posterior advantage diversity를 유지할 수 있는지 봐야 해. 그다음 no_error_factor ablation으로 error type factor가 정말 필요한지 확인하고, 이후 가장 안정적인 reward를 골라 Solver-only GRPO로 넘어가면 돼.
+
+12. 한 줄 요약
+
+오늘 실험의 결론은 이거야. Bayesian reward의 핵심 가능성은 확인됐다. 다만 현재 성능을 만드는 주된 요소는 strategy prior가 아니라 evidence likelihood이고, strategy prior는 top1 성능 향상보다는 GRPO용 reward/advantage를 더 세밀하게 만드는 보조적 reward-shaping component로 보는 게 맞다.
+
+
+
+
+
+
+
+

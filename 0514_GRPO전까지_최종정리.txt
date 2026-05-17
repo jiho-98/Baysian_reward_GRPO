@@ -1,0 +1,420 @@
+0514 GRPO 전까지 최종 정리
+
+[1] 전체 방향
+
+- 핵심 주제:
+  Bayesian Reward 기반 GRPO
+
+- 출발점:
+  answer-only RLVR/GRPO는
+  정답이면 1, 오답이면 0이라
+  reward가 너무 sparse하다는 문제의식
+
+- 기본 아이디어:
+  하나의 수학 문제에 대해
+  Qwen Solver가 여러 rollout을 만들고,
+  각 rollout을 단순 샘플이 아니라
+  strategy-conditioned
+  reasoning hypothesis로 해석
+
+- 이후 절차:
+  각 rollout에 대해
+  strategy prior와
+  evidence likelihood를 계산하고,
+  이를 결합해 posterior reward를 만든 뒤,
+  그 posterior reward를
+  GRPO 학습 신호로 사용
+
+- 현재 기본 실험 설정:
+  MATH-500 100문제
+  문제당 rollout 8개
+  Solver / Prior Judge / Evidence Judge:
+  Qwen/Qwen2.5-7B-Instruct
+
+- 현재 reward 구조:
+  answer-heavy
+  answer correctness 0.7
+  step validity 0.1
+  proof completeness 0.1
+  strategy compliance 0.05
+  consistency 0.05
+
+
+[2] 구조 변화
+
+- 초기 문제:
+  evidence 측정이 hard-coding에 가까웠고,
+  string matching 기반 평가는
+  LLM reasoning의 다양한 표현을
+  제대로 다루기 어려웠음
+
+- 수정 방향:
+  final answer correctness는
+  gold answer와 deterministic 비교
+
+- Judge가 평가하도록 바꾼 항목:
+  step validity
+  proof completeness
+  strategy compliance
+  consistency
+  error type
+
+- Solver 구조 변화:
+  문제를 보고 직접 strategy를 만들고,
+  그 strategy대로 reasoning하도록 변경
+
+- 제거한 것:
+  미리 정해진 strategy family
+  수동 hint 주입
+
+- 현재 최종 구조:
+  Qwen Solver:
+  strategy + reasoning + final answer 생성
+
+  Qwen Judge:
+  prior와 evidence 평가
+
+  Pipeline:
+  posterior reward 계산
+
+
+[3] 디버깅에서 나온 핵심 문제
+
+- 문제 1:
+  missing_final_answer_section
+  주원인:
+  reasoning이 길어져 token limit 안에
+  final answer까지 도달하지 못함
+
+- 문제 2:
+  Evidence Judge가
+  JSON처럼 보이는 출력을 했지만
+  LaTeX backslash와 escape 문제로
+  JSON parse 실패
+
+- 문제 3:
+  Prior Judge가
+  rollout 8개 전체를 평가하지 않고
+  일부 rollout만 평가하는
+  coverage 문제
+
+- 대응:
+  Solver token budget 증가
+  Judge prompt에서 JSON-only 강제
+  plain English reason 강제
+  Prior Judge coverage validation / retry 강화
+
+
+[4] 100문제 메인 실험 요약
+
+- 총 rollout:
+  800
+
+- exact rollout count:
+  정상
+
+- empty strategy:
+  0
+
+- empty reasoning:
+  0
+
+- empty final answer:
+  0
+
+- solver format failure:
+  2
+
+- evidence judge fallback:
+  7
+
+- 해석:
+  실행 안정성은 전반적으로 양호
+  다만 solver format failure와
+  judge fallback은
+  아직 완전한 0은 아님
+
+
+[5] 100문제 결과의 핵심 해석
+
+- oracle best-of-8:
+  0.57
+
+- 의미:
+  100문제 중 57문제는
+  8개 rollout 중 최소 1개가 정답
+
+  나머지 43문제는
+  8개 rollout이 모두 오답
+
+- top1 결과:
+  likelihood top1 accuracy = 0.57
+  outcome-only top1 accuracy = 0.57
+  posterior top1 accuracy = 0.57
+
+- 해석:
+  answer-heavy likelihood는
+  정답 rollout이 존재하는 문제에서
+  이미 정답 rollout을 잘 잡고 있음
+
+  posterior reward도
+  oracle 가능한 문제를 놓치지 않음
+
+  그러나 이 결과만으로는
+  strategy prior가
+  top1 성능을
+  추가로 올렸다고
+  말하기는 어려움
+
+
+[6] 더 중요한 성과
+
+- 중요한 지점:
+  top1 accuracy 자체보다
+  reward signal의 세밀함
+
+- error type 분포:
+  correct_complete = 277
+  valid_but_incomplete = 288
+  finalization_error = 142
+  wrong_direction = 73
+  arithmetic_error = 7
+  format_error = 9
+
+- 의미:
+  answer-only reward에서는
+  모두 같은 오답 0점이 되는
+  rollout들이,
+  Bayesian evidence reward에서는
+  서로 다른 실패 유형으로 구분됨
+
+- 예시 구분:
+  거의 맞았지만 완성하지 못한 풀이
+  마지막 답 정리에서 실패한 풀이
+  완전히 잘못된 방향의 풀이
+
+- GRPO 관점 해석:
+  같은 문제의 여러 rollout 사이에
+  더 풍부한 advantage signal을 줄 수 있음
+
+
+[7] Offline prior ablation
+
+- 설정:
+  같은 100문제
+  같은 800 rollout
+  같은 likelihood / evidence 고정
+  prior만 바꿔 posterior 재계산
+
+- 초기에 있던 버그:
+  offline script가 실제 key인
+  answer_correctness,
+  prior_probability를 읽지 못하고
+  answer_correct, prior 같은
+  잘못된 key를 읽음
+
+- 버그 결과:
+  oracle이 0.0으로 잘못 계산됨
+
+- 수정 후:
+  answer_correctness = 1.0 rollout 280개
+  answer_correctness = 0.0 rollout 520개
+  oracle best-of-8 = 0.57 복구
+
+
+[8] Uniform prior vs Strategy prior
+
+- 결과:
+  uniform prior와 strategy prior 모두
+  posterior top1 accuracy = 0.57
+
+- 해석:
+  strategy prior는
+  정답 선택률을 올리지는 못했음
+
+- 다만 strategy prior는:
+  posterior entropy를 낮추고
+  top1-top2 gap을 키우고
+  advantage unique values를 늘려
+  posterior를 조금 더 sharp하게 만듦
+
+- 문제:
+  이 sharpness가
+  항상 좋은 방향으로만 작동하지 않았음
+
+- full strategy prior
+  prior_lambda = 1.0 결과:
+  incorrect high posterior = 13
+  wrong direction high posterior = 4
+
+- uniform prior
+  lambda = 0.0 결과:
+  incorrect high posterior = 0
+  wrong direction high posterior = 0
+
+- 결론:
+  현재 결과에서는
+  full strategy prior를
+  main reward로 쓰는 것은 위험
+
+  uniform prior가
+  가장 안정적
+
+
+[9] prior_lambda sweep
+
+- 비교한 값:
+  lambda = 0.0, 0.25, 0.5, 0.75, 1.0
+
+- 공통 결과:
+  모든 lambda에서
+  posterior top1 accuracy = 0.57
+
+- 경향:
+  lambda가 커질수록
+  posterior mass on correct는
+  아주 조금 증가
+
+  하지만
+  incorrect high posterior도 같이 증가
+
+- 구체적 수치:
+  lambda = 0.0
+  incorrect high = 0
+  wrong high = 0
+
+  lambda = 0.25
+  incorrect high = 1
+  wrong high = 0
+
+  lambda = 0.5
+  incorrect high = 5
+  wrong high = 1
+
+  lambda = 1.0
+  incorrect high = 13
+  wrong high = 4
+
+- 결론:
+  현재 가장 안전한 main training setting은
+  uniform prior + answer-heavy evidence reward
+  즉 lambda = 0.0
+
+  선택적으로 실험할 만한 calibrated prior는
+  lambda = 0.25
+
+
+[10] 현재 훈련 방향
+
+- 실험군 1:
+  Answer-only GRPO / RLVR baseline
+  final answer correctness만 reward로 주는
+  기본 baseline
+
+- 실험군 2:
+  Uniform-prior Bayesian evidence GRPO
+  prior는 균일하게 두고,
+  answer-heavy evidence likelihood로
+  posterior reward를 만드는 방식
+
+  현재 결과상
+  가장 안정적이고
+  main method 후보
+
+- 실험군 3:
+  Calibrated strategy-prior Bayesian GRPO
+  strategy prior 자체를 버리지는 않되,
+  full prior인 lambda = 1.0이 아니라
+  lambda = 0.25처럼
+  약하게 조절한 형태
+
+- 공정한 비교 조건:
+  세 실험 모두
+  같은 base Qwen checkpoint에서 시작
+  각각 별도의 LoRA adapter로 학습
+
+
+[11] 더 넓은 연구 프레임
+
+- 큰 그림:
+  Bayesian posterior reward 기반
+  multi-agent reasoning optimization
+
+- 현재 중심:
+  Solver를 GRPO로 강화
+
+- 이후 확장 구상:
+  Judge도 DPO로 개선하는 loop
+
+- Phase 1:
+  Solver를 posterior reward로
+  GRPO 학습
+
+- Phase 2:
+  Solver rollout과
+  correctness / evidence mismatch를 이용해
+  Judge-DPO preference data 생성
+
+- Phase 3:
+  Judge를 DPO로 개선
+
+- 반복 효과:
+  Solver는 더 좋은 reasoning 생성
+  Judge는 더 정확한
+  evidence likelihood estimator로 개선
+
+- 현재 데이터 후보:
+  judge label inconsistency 25개
+  incorrect high posterior 13개
+  wrong direction high posterior 4개
+
+  이 사례들은
+  오히려 Judge-DPO 데이터 후보로
+  활용 가능
+
+
+[12] 최종 결론
+
+- 결론 1:
+  Bayesian reward 아이디어는 promising함
+
+- 결론 2:
+  현재 근거의 핵심은
+  strategy prior가
+  top1 성능을 올렸다는 점이 아님
+
+- 결론 3:
+  더 중요한 근거는
+  answer-heavy evidence likelihood가
+  안정적으로 계산되고,
+  오답 trajectory를 세밀하게 구분하며,
+  GRPO에 넣을 만한 dense reward signal을
+  만든다는 점
+
+- 결론 4:
+  strategy prior는
+  아직 강하게 쓰기에는 위험
+  다만 calibrated prior로는
+  실험 가치가 있음
+
+- 결론 5:
+  다음 단계는
+  reward-analysis에만 머무르지 말고,
+  작은 모델 또는 3B 모델에서
+  LoRA-GRPO pilot을 시작하는 것
+
+- 우선순위:
+  1. answer-only baseline 학습
+  2. uniform-prior Bayesian reward 학습
+  3. 시간이 되면
+     lambda = 0.25
+     calibrated strategy-prior 추가
+
+
+[한 줄 요약]
+
+지금까지의 최선의 해석은
+"main reward는 uniform-prior + answer-heavy
+Bayesian evidence reward로 가고,
+strategy prior는 calibrated setting에서만
+조심스럽게 실험한다" 입니다.
