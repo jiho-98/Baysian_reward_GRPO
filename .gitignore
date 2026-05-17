@@ -1,4 +1,7 @@
 .env
+.agents/
+.codex/
+.git.broken_*/
 hf_cache/
 logs/
 results/

@@ -1,88 +1,211 @@
-# Bayesian Self-Data Reasoning
+# Bayesian Reward GRPO
 
-This folder contains the EMNLP research prototype for strategy-belief self-play in LLM reasoning.
+Research code for Bayesian-style reward design in math reasoning with GRPO.
 
-## Minimal Experiment
+The project started from strategy-belief prototypes and grew into a set of
+controlled experiments on whether richer Bayesian reward signals can improve
+over answer-only RL for mathematical reasoning.
 
-The first milestone is intentionally small:
+## Core Idea
 
-1. Use one modular arithmetic problem.
-2. Run four fixed strategy-conditioned rollouts.
-3. Verify final answers with Python.
-4. Score how strongly each rollout followed the assigned strategy.
-5. Update a Beta-Bernoulli belief table using the compliance score.
+Standard answer-only GRPO gives each rollout a reward based only on final answer
+correctness:
 
-Run the API-free demo:
+- correct answer -> reward `1`
+- wrong answer -> reward `0`
+
+This is stable and low-noise, but it ignores reasoning quality.
+
+This repository explores a Bayesian alternative. For each problem, multiple
+rollouts are treated as strategy-conditioned hypotheses. Reward is built from:
+
+- a strategy prior `P(H_i | q)`
+- an evidence likelihood `P(E_i | H_i, q)`
+- posterior normalization across the rollout group
+
+The full version implemented here uses:
+
+`score_i = P(H_i | q)^lambda * P(E_i | H_i, q)`
+
+and then normalizes within the rollout set:
+
+`reward_i = score_i / sum_j score_j`
+
+## What Is Implemented
+
+### GRPO training variants
+
+- [Answer_only_GRPO.py](Answer_only_GRPO.py)
+  Answer-only GRPO baseline.
+- [Bayesian_GRPO.py](Bayesian_GRPO.py)
+  Uniform-prior likelihood-style Bayesian reward.
+- [Bayesian_AH_GRPO.py](Bayesian_AH_GRPO.py)
+  Answer-heavy likelihood reward with stronger correctness anchoring.
+- [Bayesian_Full_GRPO.py](Bayesian_Full_GRPO.py)
+  Full posterior-normalized reward with strategy prior and within-group
+  normalization.
+
+### Evaluation
+
+- [eval_answer_only_grpo.py](eval_answer_only_grpo.py)
+- [eval_bayesian_ah_grpo.py](eval_bayesian_ah_grpo.py)
+- [eval_fair_compare_adapters.py](eval_fair_compare_adapters.py)
+
+### Trajectory / posterior analysis
+
+- [run_bayesian_trajectory_experiment.py](run_bayesian_trajectory_experiment.py)
+- [offline_prior_recompute.py](offline_prior_recompute.py)
+- [offline_prior_recompute_fixed.py](offline_prior_recompute_fixed.py)
+
+### Earlier belief and prototype experiments
+
+- [scripts/minimal_belief_demo.py](scripts/minimal_belief_demo.py)
+- [multi_problem_belief_experiment.py](multi_problem_belief_experiment.py)
+- [multi_task_belief_experiment.py](multi_task_belief_experiment.py)
+- [llm_self_data_bayesian_experiment.py](llm_self_data_bayesian_experiment.py)
+- [new_qwen.py](new_qwen.py)
+
+### Data preparation
+
+- [prepare_fair_bigmath_metadata.py](prepare_fair_bigmath_metadata.py)
+
+## Current Headline Result
+
+On the fixed fair Big-Math split (`3000 train / 300 eval`, `n=8`, `500 steps`,
+same base model and metadata split), the local eval summary is:
+
+| Model | Accuracy |
+| --- | ---: |
+| Base Qwen2.5-3B-Instruct | 54.67% |
+| Answer-only GRPO | 54.00% |
+| Bayesian AH 0.80 | 58.33% |
+| Bayesian Full | 60.00% |
+
+Difficulty breakdown on the same fair eval set:
+
+| Model | Easy | Medium |
+| --- | ---: | ---: |
+| Base | 65.67% | 51.50% |
+| Answer-only | 70.15% | 49.36% |
+| Bayesian AH 0.80 | 70.15% | 54.94% |
+| Bayesian Full | 70.15% | 57.08% |
+
+The main observed gain from Bayesian rewards appears on medium-difficulty
+problems rather than easy ones.
+
+## Repository Policy
+
+This GitHub repository currently tracks:
+
+- code
+- notes
+- lightweight documentation
+
+It does **not** track:
+
+- local virtual environments
+- training outputs
+- checkpoints
+- optimizer states
+- large evaluation artifacts
+- local caches
+
+Large artifacts remain in local `outputs/` and related folders.
+
+## Setup
+
+Python environments are local and not committed. Install the dependencies you
+need for the script you want to run. Most GRPO scripts rely on:
+
+- `torch`
+- `transformers`
+- `trl`
+- `peft`
+- `datasets`
+
+Some earlier demos also use:
+
+- `openai`
+
+Use a local `.env` file or shell exports for secrets. Do not hardcode API keys
+in source files.
+
+Example:
 
 ```bash
-cd /home/kimjh/EMNLP
+export OPENAI_API_KEY=your_key_here
+```
+
+## Example Commands
+
+### Minimal belief demo
+
+```bash
 python scripts/minimal_belief_demo.py
 ```
 
-The script writes:
-
-```text
-results/minimal_belief_demo.json
-```
-
-Expected behavior:
-
-- Correct rollouts increase `alpha` by `strategy_compliance_score`.
-- Wrong rollouts increase `beta` by `strategy_compliance_score`.
-- Non-compliant portions increment `strategy_drift` by `1 - strategy_compliance_score`.
-- Assigned strategy belief and actual strategy credit are tracked separately.
-- `success_belief` measures success when a strategy is followed; `usability_belief`
-  additionally penalizes average strategy drift.
-
-## Optional Real LLM Rollouts
-
-Create a local `.env` file or export `OPENAI_API_KEY` in your shell. The `.env`
-file is ignored by git.
+### Fair metadata preparation
 
 ```bash
-cd /home/kimjh/EMNLP
-printf 'OPENAI_API_KEY=your_key_here\n' > .env
+python prepare_fair_bigmath_metadata.py
 ```
 
-Then run:
+### Full Bayesian GRPO training
 
 ```bash
-cd /home/kimjh/EMNLP
-python scripts/minimal_belief_demo.py \
-  --backend openai \
-  --model gpt-4o-mini \
-  --output results/minimal_belief_openai_gpt4omini.json
+python Bayesian_Full_GRPO.py \
+  --model_name Qwen/Qwen2.5-3B-Instruct \
+  --prior_mode llm_strategy_prior \
+  --prior_judge_model Qwen/Qwen2.5-3B-Instruct \
+  --evidence_judge_model Qwen/Qwen2.5-3B-Instruct \
+  --use_fixed_metadata \
+  --train_metadata_path outputs/fair_bigmath_3000_300_seed42/selected_train_metadata.jsonl \
+  --eval_metadata_path outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl \
+  --train_size 3000 \
+  --eval_size 300 \
+  --num_generations 8 \
+  --max_steps 500 \
+  --output_dir outputs/fair_bayesian_full_qwen3b_bigmath_3000_300_n8_steps500
 ```
 
-For an open-source Hugging Face model on a GPU node, edit the Slurm template first:
+### Adapter comparison on the same eval split
 
 ```bash
-vim scripts/slurm_qwen_belief_demo.sbatch
+python eval_fair_compare_adapters.py \
+  --model_name Qwen/Qwen2.5-3B-Instruct \
+  --eval_path outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl \
+  --adapter "answer_only_n8:outputs/fair_answer_only_qwen3b_bigmath_3000_300_n8_steps500/checkpoint-500" \
+  --adapter "bayesian_ah080_n8:outputs/fair_bayesian_ah080_qwen3b_bigmath_3000_300_n8_steps500/checkpoint-500" \
+  --adapter "bayesian_full_n8:outputs/fair_bayesian_full_qwen3b_bigmath_3000_300_n8_steps500/checkpoint-500" \
+  --output_dir outputs/eval_fair_answer_vs_bayesian_ah080_vs_full_300
 ```
 
-Confirm and replace these placeholders with the lab/server admin:
+## Notes and Summaries
 
-```text
-GPU_PARTITION_NAME
-ACCOUNT_NAME
-QOS_NAME
-gpu:1
-cuda module name, if required
-```
+Current internal summaries are tracked as text files:
 
-Then submit only after confirmation:
+- [0514_GRPO전까지_최종정리.txt](0514_GRPO전까지_최종정리.txt)
+- [0514_현재까지_진행상황_총정리.txt](0514_현재까지_진행상황_총정리.txt)
+- [0517_BayesianGRPO_진행상황정리.txt](0517_BayesianGRPO_진행상황정리.txt)
 
-```bash
-sbatch scripts/slurm_qwen_belief_demo.sbatch
-```
+## Repository Layout
 
-Each rollout must end with:
+See [REPO_STRUCTURE.md](REPO_STRUCTURE.md) for:
 
-```text
-USED_STRATEGY: <actual strategy used>
-FINAL_ANSWER: <integer>
-```
+- the current repository layout
+- what each script family is for
+- what should remain local-only
+- a concrete cleanup / reorganization plan
 
-## Current Scope
+## Status
 
-Do not add self-generated problems, failure analysis, GRPO, AIME, or MATH500 yet. The current goal is only to validate that strategy-conditioned rollout evidence updates strategy beliefs in code.
+This is an active research repository, not a polished library.
+
+The current evidence supports the claim that posterior-style Bayesian reward is
+more informative than answer-only reward in the current fair setting, but the
+project still needs:
+
+- multi-seed validation
+- larger held-out evaluation
+- harder subsets
+- analyzer training and co-evolution with the solver
