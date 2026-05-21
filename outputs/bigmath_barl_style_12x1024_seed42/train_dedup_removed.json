@@ -1,0 +1,177 @@
+[
+  {
+    "normalized_problem": "given that abcd is a unit square and p is the midpoint of side ab, the square is folded along pc and pd to form a tetrahedron pacd (where a coincides with b). calculate the volume of tetrahedron pacd. express your answer as a fraction with a square root.",
+    "original_idx": 244056,
+    "problem_preview": "Given that ABCD is a unit square and P is the midpoint of side AB, the square is folded along PC and PD to form a tetrahedron PACD (where A coincides with B). Calculate the volume of tetrahedron PACD. Express your answer as a fraction with ",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given the equation x^2 + y^2 = 14x + 6y + 6, find the maximum value of 3x + 4y. express your answer as a single integer.",
+    "original_idx": 250305,
+    "problem_preview": "Given the equation x^2 + y^2 = 14x + 6y + 6, find the maximum value of 3x + 4y. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "find the maximum value of the function $f(x)=\\cos 2x+6\\cos(\\frac{\\pi}{2}-x)$. express your answer as a single number.",
+    "original_idx": 219818,
+    "problem_preview": "Find the maximum value of the function $f(x)=\\cos 2x+6\\cos(\\frac{\\pi}{2}-x)$. Express your answer as a single number.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "a certain commodity is purchased at a price of 100 yuan per piece. it is sold at a 25% increase on the purchase price. later, due to overstock, the price is reduced, and it is sold at a 10% discount. calculate the profit per piece. express your answer in yuan.",
+    "original_idx": 215789,
+    "problem_preview": "A certain commodity is purchased at a price of 100 yuan per piece. It is sold at a 25% increase on the purchase price. Later, due to overstock, the price is reduced, and it is sold at a 10% discount. Calculate the profit per piece. Express ",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given the coordinates of points a(0,1), b(1,3), c(5,2), and d(4,0), calculate the area of quadrilateral abcd. express your answer as a single integer.",
+    "original_idx": 241200,
+    "problem_preview": "Given the coordinates of points A(0,1), B(1,3), C(5,2), and D(4,0), calculate the area of quadrilateral ABCD. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "the minnesota twins face the new york mets in the 2006 world series. assuming the two teams are evenly matched (each has a 0.5 probability of winning any game), what is the probability that the world series (a best of 7 series of games which lasts until one team wins four games) will require the full seven games to determine a winner? express your answer as a fraction in simplest form.",
+    "original_idx": 249978,
+    "problem_preview": "The Minnesota Twins face the New York Mets in the 2006 World Series. Assuming the two teams are evenly matched (each has a 0.5 probability of winning any game), what is the probability that the World Series (a best of 7 series of games whic",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given the quadratic equation $x^{2}-8x+m=0$, where the roots are $x_{1}$ and $x_{2}$, and it's given that $x_{1}=3x_{2}$, find the value of $m$. express your answer as a single integer.",
+    "original_idx": 232137,
+    "problem_preview": "Given the quadratic equation $x^{2}-8x+m=0$, where the roots are $x_{1}$ and $x_{2}$, and it's given that $x_{1}=3x_{2}$, find the value of $m$. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given an arithmetic sequence {a_n}, the sum of the first n terms is denoted as s_n. if a_1 + a_9 + a_{11} = 30, find the sum of the first 13 terms, s_{13}. express your answer as a single integer.",
+    "original_idx": 232853,
+    "problem_preview": "Given an arithmetic sequence {a_n}, the sum of the first n terms is denoted as s_n. If a_1 + a_9 + a_{11} = 30, find the sum of the first 13 terms, s_{13}. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "let the function y = f(x) be differentiable. evaluate the limit $\\lim_{\\delta x \\to 0} \\frac{f(1+3\\delta x)-f(1)}{3\\delta x}$. express your answer as a mathematical expression.",
+    "original_idx": 237484,
+    "problem_preview": "Let the function y = f(x) be differentiable. Evaluate the limit $\\lim_{\\Delta x \\to 0} \\frac{f(1+3\\Delta x)-f(1)}{3\\Delta x}$. Express your answer as a mathematical expression.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "siobhan received marks of 69, 53, 69, 71, 78, x, and y on seven tests, each out of 100 marks. if her average mark on the seven tests is 66, find the minimum possible value of x. express your answer as a whole number.",
+    "original_idx": 248508,
+    "problem_preview": "Siobhan received marks of 69, 53, 69, 71, 78, x, and y on seven tests, each out of 100 marks. If her average mark on the seven tests is 66, find the minimum possible value of x. Express your answer as a whole number.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "ann and sue bought identical boxes of stationery. ann used hers to write 1-sheet letters and sue used hers to write 3-sheet letters. ann used all the envelopes and had 50 sheets of paper left, while sue used all of the sheets of paper and had 50 envelopes left. calculate the number of sheets of paper in each box.",
+    "original_idx": 248946,
+    "problem_preview": "Ann and Sue bought identical boxes of stationery. Ann used hers to write 1-sheet letters and Sue used hers to write 3-sheet letters. Ann used all the envelopes and had 50 sheets of paper left, while Sue used all of the sheets of paper and h",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given that angle α = 2kπ - π/5 (k ∈ z), if angle θ has the same terminal side as angle α, calculate the value of y = sin θ / |sin θ| + cos θ / |cos θ| + tan θ / |tan θ|. express your answer as a single integer.",
+    "original_idx": 206991,
+    "problem_preview": "Given that angle α = 2kπ - π/5 (k ∈ ℤ), if angle θ has the same terminal side as angle α, calculate the value of y = sin θ / |sin θ| + cos θ / |cos θ| + tan θ / |tan θ|. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "in triangle \\( \\triangle abc \\), \\( \\angle a = 80^\\circ \\). points \\( d, e, f \\) are on sides \\( bc, ab \\), and \\( ac \\) respectively, with \\( bd = be \\) and \\( cd = cf \\). find the measure of \\( \\angle edf \\) in degrees.",
+    "original_idx": 248173,
+    "problem_preview": "In triangle \\( \\triangle ABC \\), \\( \\angle A = 80^\\circ \\). Points \\( D, E, F \\) are on sides \\( BC, AB \\), and \\( AC \\) respectively, with \\( BD = BE \\) and \\( CD = CF \\). Find the measure of \\( \\angle EDF \\) in degrees.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given that ${\\_a_n}$ is an arithmetic sequence and ${\\_a_1} + {\\_a_3} + {\\_a_5} = 15$, find the value of ${\\_a_3}$. express your answer as a single number.",
+    "original_idx": 222550,
+    "problem_preview": "Given that ${\\_a_n}$ is an arithmetic sequence and ${\\_a_1} + {\\_a_3} + {\\_a_5} = 15$, find the value of ${\\_a_3}$. Express your answer as a single number.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given that the complex number $z = \\frac{a+3i}{1+2i}$ (where $a \\in \\mathbb{r}$ and $i$ is the imaginary unit) is purely imaginary, calculate the modulus of $z$, $|z|$.",
+    "original_idx": 238136,
+    "problem_preview": "Given that the complex number $z = \\frac{a+3i}{1+2i}$ (where $a \\in \\mathbb{R}$ and $i$ is the imaginary unit) is purely imaginary, calculate the modulus of $z$, $|z|$.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given that $-2 < a < -1$ and $-1 < b < 0$, find the range of $m = a + b$. express your answer as an inequality, including the upper and lower bounds of the range.",
+    "original_idx": 238816,
+    "problem_preview": "Given that $-2 < a < -1$ and $-1 < b < 0$, find the range of $M = a + b$. Express your answer as an inequality, including the upper and lower bounds of the range.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "simplify the following expression: \\[\\frac{\\left(3^{2008}\\right)^2-\\left(3^{2006}\\right)^2}{\\left(3^{2007}\\right)^2-\\left(3^{2005}\\right)^2}\\] express your answer as a simplified numerical value.",
+    "original_idx": 247172,
+    "problem_preview": "Simplify the following expression: \\[\\frac{\\left(3^{2008}\\right)^2-\\left(3^{2006}\\right)^2}{\\left(3^{2007}\\right)^2-\\left(3^{2005}\\right)^2}\\] Express your answer as a simplified numerical value.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "in the expansion of (1+x)+(1+x)^2+(1+x)^3+...+(1+x)^11, find the coefficient of x^2. express your answer as a single integer.",
+    "original_idx": 212312,
+    "problem_preview": "In the expansion of (1+x)+(1+x)^2+(1+x)^3+...+(1+x)^11, find the coefficient of x^2. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "find the number of positive integers p that satisfy the inequality -1 < sqrt(p) - sqrt(100) < 1. express your answer as a single integer.",
+    "original_idx": 239903,
+    "problem_preview": "Find the number of positive integers p that satisfy the inequality -1 < sqrt(p) - sqrt(100) < 1. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "find the value of $\\sin(x+\\frac{\\pi}{2})$. express your answer as a trigonometric function of x.",
+    "original_idx": 228205,
+    "problem_preview": "Find the value of $\\sin(x+\\frac{\\pi}{2})$. Express your answer as a trigonometric function of x.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "a certain school offers a series of 10 elective math courses for students to choose from. among these, the courses 4-1, 4-2, and 4-4 are scheduled at the same time, allowing a student to choose at most one of them. according to the requirements of the credit system, each student must elect three courses. calculate the total number of different elective schemes available for each student.",
+    "original_idx": 228916,
+    "problem_preview": "A certain school offers a series of 10 elective math courses for students to choose from. Among these, the courses 4-1, 4-2, and 4-4 are scheduled at the same time, allowing a student to choose at most one of them. According to the requirem",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "find the interval where the function $y=\\frac{1}{2}x^2-\\ln x$ is monotonically decreasing. express your answer in standard interval notation.",
+    "original_idx": 233948,
+    "problem_preview": "Find the interval where the function $y=\\frac{1}{2}x^2-\\ln x$ is monotonically decreasing. Express your answer in standard interval notation.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "given a cone with a slant height of $l=5\\\\text{cm}$ and a height of $h=4\\\\text{cm}$, calculate the volume of the cone. express your answer in cubic centimeters ($\\\\text{cm}^3$) and in terms of $\\\\pi$.",
+    "original_idx": 212651,
+    "problem_preview": "Given a cone with a slant height of $l=5\\\\text{cm}$ and a height of $h=4\\\\text{cm}$, calculate the volume of the cone. Express your answer in cubic centimeters ($\\\\text{cm}^3$) and in terms of $\\\\pi$.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "among all 4-digit numbers, how many numbers can be divided by 2, 3, 5, 7, and 11 simultaneously? express your answer as a whole number.",
+    "original_idx": 214104,
+    "problem_preview": "Among all 4-digit numbers, how many numbers can be divided by 2, 3, 5, 7, and 11 simultaneously? Express your answer as a whole number.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  },
+  {
+    "normalized_problem": "in the expansion of $(1+x)^{2}+\\left(1+x ight)^{3}+\\ldots +\\left(1+x ight)^{9}$, find the coefficient of $x^{2}$. express your answer as a single integer.",
+    "original_idx": 208157,
+    "problem_preview": "In the expansion of $(1+x)^{2}+\\left(1+x ight)^{3}+\\ldots +\\left(1+x ight)^{9}$, find the coefficient of $x^{2}$. Express your answer as a single integer.",
+    "reason": "train_duplicate",
+    "source": "big_math"
+  }
+]

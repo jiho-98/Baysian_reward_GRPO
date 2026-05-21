@@ -1,0 +1,108 @@
+{
+  "created_at_utc": "2026-05-21T11:14:19.456657+00:00",
+  "dedup_key": "normalized_problem_text",
+  "eval_dataset_problem_counts": {
+    "math-ai/aime26": {
+      "missing_problem_rows": 0,
+      "num_problem_texts": 30,
+      "split_counts": {
+        "test": 30
+      }
+    },
+    "math-ai/minervamath": {
+      "missing_problem_rows": 0,
+      "num_problem_texts": 272,
+      "split_counts": {
+        "test": 272
+      }
+    },
+    "math-ai/olympiadbench": {
+      "missing_problem_rows": 0,
+      "num_problem_texts": 674,
+      "split_counts": {
+        "test": 674
+      }
+    }
+  },
+  "eval_overlap_removed": true,
+  "eval_sets_deduped_against": [
+    "math-ai/olympiadbench",
+    "math-ai/minervamath",
+    "math-ai/aime26"
+  ],
+  "kept_sources_note": "GSM8K and MATH sources are kept because this experiment evaluates only on OlympiadBench, MinervaMath, and AIME26.",
+  "num_candidates_before_filter": 251122,
+  "num_removed_empty_problem_or_answer": 1,
+  "num_removed_eval_overlap": 0,
+  "num_removed_source_amc_aime": 2,
+  "num_removed_train_duplicate": 25,
+  "num_rollout_batches": 12,
+  "num_selected": 12288,
+  "rollout_batch_dir": "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches",
+  "rollout_batch_paths": [
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_00.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_01.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_02.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_03.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_04.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_05.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_06.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_07.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_08.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_09.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_10.jsonl",
+    "outputs/bigmath_barl_style_12x1024_seed42/rollout_batches/rollout_batch_11.jsonl"
+  ],
+  "rollout_batch_size": 1024,
+  "sampling_protocol": "barl_style_rollout_batch_sampling",
+  "sampling_seed": 42,
+  "sampling_without_replacement": true,
+  "selected_rollout_prompts_path": "outputs/bigmath_barl_style_12x1024_seed42/selected_rollout_prompts.jsonl",
+  "selected_rollout_prompts_sha256": "01025a9335d85f0e193af3e7b2b407bdb4a7a4fcc5c2bf622457e00b370486d6",
+  "selected_train_metadata_is_alias_of_selected_rollout_prompts": true,
+  "selected_train_metadata_path": "outputs/bigmath_barl_style_12x1024_seed42/selected_train_metadata.jsonl",
+  "selected_train_metadata_sha256": "01025a9335d85f0e193af3e7b2b407bdb4a7a4fcc5c2bf622457e00b370486d6",
+  "source_dataset": "SynthLabsAI/Big-Math-RL-Verified",
+  "source_distribution_after_filter": {
+    "aops_forum": 280,
+    "big_math": 2300,
+    "cn_k12": 3065,
+    "gsm8k": 82,
+    "harp": 180,
+    "math": 449,
+    "olympiads": 1659,
+    "omnimath": 145,
+    "openmath": 73,
+    "orca_math": 4055
+  },
+  "source_distribution_before_filter": {
+    "amc_aime": 78,
+    "aops_forum": 5740,
+    "big_math": 47010,
+    "cn_k12": 63609,
+    "gsm8k": 1865,
+    "harp": 2996,
+    "math": 8963,
+    "olympiads": 33485,
+    "omnimath": 2478,
+    "openmath": 1683,
+    "orca_math": 83215
+  },
+  "source_distribution_selected": {
+    "aops_forum": 280,
+    "big_math": 2300,
+    "cn_k12": 3065,
+    "gsm8k": 82,
+    "harp": 180,
+    "math": 449,
+    "olympiads": 1659,
+    "omnimath": 145,
+    "openmath": 73,
+    "orca_math": 4055
+  },
+  "source_level_excluded_sources": [
+    "amc_aime"
+  ],
+  "total_prompt_budget": 12288,
+  "train_internal_dedup": true
+}

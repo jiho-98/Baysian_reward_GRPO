@@ -1,0 +1,16 @@
+[
+  {
+    "normalized_problem": "let $n$ be the least positive integer that is both $22$ percent less than one integer and $16$ percent greater than another integer. find the remainder when $n$ is divided by $1000$.",
+    "original_idx": 187985,
+    "problem_preview": "Let $N$ be the least positive integer that is both $22$ percent less than one integer and $16$ percent greater than another integer. Find the remainder when $N$ is divided by $1000$.",
+    "reason": "source_amc_aime",
+    "source": "amc_aime"
+  },
+  {
+    "normalized_problem": "triangle $abc$ has side lengths $ab = 9$, $bc =$ $5\\sqrt{3}$, and $ac = 12$. points $a = p_{0}, p_{1}, p_{2}, ... , p_{2450} = b$ are on segment $\\overline{ab}$ with $p_{k}$ between $p_{k-1}$ and $p_{k+1}$ for $k = 1, 2, ..., 2449$, and points $a = q_{0}, q_{1}, q_{2}, ... , q_{2450} = c$ are on segment $\\overline{ac}$ with $q_{k}$ between $q_{k-1}$ and $q_{k+1}$ for $k = 1, 2, ..., 2449$. furthermore, each segment $\\overline{p_{k}q_{k}}$, $k = 1, 2, ..., 2449$, is parallel to $\\overline{bc}$. the segments cut the triangle into $2450$ regions, consisting of $2449$ trapezoids and $1$ triangle. each of the $2450$ regions has the same area. find the number of segments $\\overline{p_{k}q_{k}}$, $k = 1, 2, ..., 2450$, that have rational length.",
+    "original_idx": 187952,
+    "problem_preview": "Triangle $ABC$ has side lengths $AB = 9$, $BC =$ $5\\sqrt{3}$, and $AC = 12$. Points $A = P_{0}, P_{1}, P_{2}, ... , P_{2450} = B$ are on segment $\\overline{AB}$ with $P_{k}$ between $P_{k-1}$ and $P_{k+1}$ for $k = 1, 2, ..., 2449$, and poi",
+    "reason": "source_amc_aime",
+    "source": "amc_aime"
+  }
+]
