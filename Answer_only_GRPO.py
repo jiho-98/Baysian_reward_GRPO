@@ -101,13 +101,29 @@ Problem:
 
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default: bool, help_text: str) -> None:
-    parser.add_argument(
-        f"--{name}",
+    dashed_name = name.replace("_", "-")
+    positive_options = [f"--{name}"]
+    if dashed_name != name:
+        positive_options.append(f"--{dashed_name}")
+
+    negative_options = [f"--no-{name}", f"--no_{name}"]
+    if dashed_name != name:
+        negative_options.append(f"--no-{dashed_name}")
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument(
+        *positive_options,
         dest=name,
-        action=argparse.BooleanOptionalAction,
-        default=default,
+        action="store_true",
         help=help_text,
     )
+    group.add_argument(
+        *negative_options,
+        dest=name,
+        action="store_false",
+        help=f"Disable: {help_text}",
+    )
+    parser.set_defaults(**{name: default})
 
 
 def parse_args() -> argparse.Namespace:
