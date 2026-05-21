@@ -52,8 +52,8 @@ def parse_args() -> argparse.Namespace:
         help="Convenience flag equivalent to `--setting full_train`.",
     )
     parser.add_argument("--output_dir", default="")
-    parser.add_argument("--train_size", type=int, default=3000)
-    parser.add_argument("--valid_size", type=int, default=500)
+    parser.add_argument("--train_size", type=int, default=None, help="Sampled setting only. Defaults to all train rows.")
+    parser.add_argument("--valid_size", type=int, default=None, help="Sampled setting only. Defaults to 0 rows.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--write_sft_data",
@@ -304,9 +304,9 @@ def build_summary(
 def main() -> None:
     args = parse_args()
     setting = resolved_setting(args)
-    if args.train_size <= 0:
+    if args.train_size is not None and args.train_size <= 0:
         raise SystemExit("--train_size must be positive.")
-    if args.valid_size < 0:
+    if args.valid_size is not None and args.valid_size < 0:
         raise SystemExit("--valid_size must be non-negative.")
 
     try:
@@ -326,9 +326,11 @@ def main() -> None:
         train_indices = list(range(len(train_split)))
         valid_indices: list[int] = []
     else:
-        if args.train_size + args.valid_size > len(train_split):
+        train_size = len(train_split) if args.train_size is None else args.train_size
+        valid_size = 0 if args.valid_size is None else args.valid_size
+        if train_size + valid_size > len(train_split):
             raise RuntimeError(
-                f"Requested train+valid={args.train_size + args.valid_size}, "
+                f"Requested train+valid={train_size + valid_size}, "
                 f"but GSM8K train has only {len(train_split)} rows."
             )
 
@@ -336,8 +338,8 @@ def main() -> None:
         shuffled_indices = list(range(len(train_split)))
         rng.shuffle(shuffled_indices)
 
-        train_indices = shuffled_indices[: args.train_size]
-        valid_indices = shuffled_indices[args.train_size : args.train_size + args.valid_size]
+        train_indices = shuffled_indices[:train_size]
+        valid_indices = shuffled_indices[train_size : train_size + valid_size]
 
     train_rows = [metadata_row_from_example(train_split[index]) for index in train_indices]
     valid_rows = [metadata_row_from_example(train_split[index]) for index in valid_indices]

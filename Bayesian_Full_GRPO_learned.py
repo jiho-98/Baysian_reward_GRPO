@@ -155,8 +155,8 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--min_solve_rate", type=float, default=0.2)
     parser.add_argument("--max_solve_rate", type=float, default=0.8)
-    parser.add_argument("--train_size", type=int, default=1000)
-    parser.add_argument("--eval_size", type=int, default=100)
+    parser.add_argument("--train_size", type=int, default=None, help="Number of train rows to use. Defaults to all rows.")
+    parser.add_argument("--eval_size", type=int, default=None, help="Number of eval rows to use. Defaults to all rows.")
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--num_generations", type=int, default=8)
@@ -345,22 +345,28 @@ def load_fixed_metadata_datasets(
     full_eval_rows = [normalize_metadata_row(row) for row in load_jsonl_rows(eval_path)]
     if not full_train_rows:
         raise RuntimeError(f"Fixed train metadata is empty: {train_path}")
-    if args.eval_size > 0 and not full_eval_rows:
+    train_size = len(full_train_rows) if args.train_size is None else args.train_size
+    eval_size = len(full_eval_rows) if args.eval_size is None else args.eval_size
+    if train_size < 0 or eval_size < 0:
+        raise SystemExit("--train_size and --eval_size must be non-negative.")
+    if eval_size > 0 and not full_eval_rows:
         raise RuntimeError(f"Fixed eval metadata is empty: {eval_path}")
 
-    if args.train_size > len(full_train_rows):
+    if train_size > len(full_train_rows):
         print(
-            f"[WARN] Requested train_size={args.train_size} exceeds fixed metadata size={len(full_train_rows)}. "
+            f"[WARN] Requested train_size={train_size} exceeds fixed metadata size={len(full_train_rows)}. "
             "Clipping to available rows."
         )
-    if args.eval_size > len(full_eval_rows):
+    if eval_size > len(full_eval_rows):
         print(
-            f"[WARN] Requested eval_size={args.eval_size} exceeds fixed metadata size={len(full_eval_rows)}. "
+            f"[WARN] Requested eval_size={eval_size} exceeds fixed metadata size={len(full_eval_rows)}. "
             "Clipping to available rows."
         )
 
-    train_rows = full_train_rows[: min(args.train_size, len(full_train_rows))]
-    eval_rows = full_eval_rows[: min(args.eval_size, len(full_eval_rows))]
+    train_rows = full_train_rows[: min(train_size, len(full_train_rows))]
+    eval_rows = full_eval_rows[: min(eval_size, len(full_eval_rows))]
+    args.train_size = len(train_rows)
+    args.eval_size = len(eval_rows)
 
     write_jsonl(output_dir / "selected_train_metadata.jsonl", train_rows)
     write_jsonl(output_dir / "selected_eval_metadata.jsonl", eval_rows)
@@ -1917,9 +1923,9 @@ def main() -> None:
             raise SystemExit(1)
         return
 
-    if args.train_size <= 0:
+    if args.train_size is not None and args.train_size <= 0:
         raise SystemExit("--train_size must be positive.")
-    if args.eval_size < 0:
+    if args.eval_size is not None and args.eval_size < 0:
         raise SystemExit("--eval_size must be non-negative.")
     if args.smoke_test_examples <= 0:
         raise SystemExit("--smoke_test_examples must be positive.")
