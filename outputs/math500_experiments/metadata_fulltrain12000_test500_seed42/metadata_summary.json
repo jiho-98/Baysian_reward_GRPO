@@ -1,0 +1,49 @@
+{
+  "created_at_utc": "2026-05-21T07:47:03.160926+00:00",
+  "dataset_config": null,
+  "dataset_name": "ricdomolm/MATH-500",
+  "official_test_size": 500,
+  "official_train_size": 12000,
+  "output_dir": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42",
+  "random_seed": 42,
+  "seed": 42,
+  "setting": "full_train",
+  "sft_train_path": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/sft_train_messages.jsonl",
+  "sft_train_sha256": "8431ac28b20a158b6cdf6cc3e4125d8d589caccbaf6da71454aec4f0e52a187a",
+  "sft_valid_path": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/sft_valid_messages.jsonl",
+  "sft_valid_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_split_info": {
+    "test": "ricdomolm/MATH-500 test split",
+    "train": "ricdomolm/MATH-500 train split",
+    "valid": "none"
+  },
+  "test_first_5_problem_previews": [
+    "If $2^8=4^x$, what is the value of $x$?",
+    "For what values of $x$ is it true that $x^2 - 5x - 4 \\le 10$? Express your answer in interval notation.",
+    "What is the smallest real number $x$ in the domain of the function $$g(x) = \\sqrt{(x-3)^2-(x-8)^2}~?$$",
+    "Ten treeks weigh as much as three squigs and one goolee. Two treeks and one goolee are equal in weight to one squig. ...",
+    "Consider the geometric sequence $\\frac{125}{9}, \\frac{25}{3}, 5, 3, \\ldots$. What is the eighth term of the sequence?..."
+  ],
+  "test_metadata_path": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl",
+  "test_sha256": "e4c9b4d3b22fe2a0f75e48dbd9d4927c725af1b9867cf65bbba8c77e6dc05478",
+  "test_size": 500,
+  "test_size_full": 500,
+  "test_split": "test",
+  "train_first_5_problem_previews": [
+    "Let \\[f(x) = \\left\\{ \\begin{array}{cl} ax+3, &\\text{ if }x>2, \\\\ x-5 &\\text{ if } -2 \\le x \\le 2, \\\\ 2x-b &\\text{ if ...",
+    "A rectangular band formation is a formation with $m$ band members in each of $r$ rows, where $m$ and $r$ are integers...",
+    "What is the degree of the polynomial $(4 +5x^3 +100 +2\\pi x^4 + \\sqrt{10}x^4 +9)$?",
+    "Evaluate $\\left\\lceil3\\left(6-\\frac12\\right)\\right\\rceil$.",
+    "Sam is hired for a 20-day period. On days that he works, he earns $\\$$60. For each day that he does not work, $\\$$30 ..."
+  ],
+  "train_metadata_path": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_train_metadata.jsonl",
+  "train_sha256": "e33a79c02400eee822e2cccafdee30b850217baadb64e6b0be6e27affedf767e",
+  "train_size": 12000,
+  "train_size_full": 12000,
+  "train_split": "train",
+  "valid_first_5_problem_previews": [],
+  "valid_metadata_path": "outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_valid_metadata.jsonl",
+  "valid_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "valid_size": 0,
+  "write_sft_data": true
+}
