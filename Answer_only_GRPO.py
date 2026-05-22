@@ -1414,6 +1414,9 @@ def create_grpo_trainer(
     tokenizer: Any,
     peft_config: Any,
 ) -> tuple[Any, list[str]]:
+    if getattr(args, "use_vllm", False) and getattr(args, "vllm_mode", None) == "colocate":
+        patch_trl_vllm_colocate_for_eager_init()
+
     trainer_kwargs: dict[str, Any] = {
         "model": args.model_name,
         "args": training_args,
@@ -1438,6 +1441,29 @@ def create_grpo_trainer(
 
     filtered_kwargs, dropped = filter_supported_kwargs(GRPOTrainer.__init__, trainer_kwargs)
     return GRPOTrainer(**filtered_kwargs), dropped
+
+
+def patch_trl_vllm_colocate_for_eager_init() -> None:
+    """Avoid vLLM 0.21.x torch.compile init failures in TRL colocate mode."""
+    try:
+        import trl.generation.vllm_generation as trl_vllm_generation
+    except Exception as exc:  # pragma: no cover - depends on optional vLLM stack
+        print(f"[WARN] unable to inspect TRL vLLM generation module: {exc}")
+        return
+
+    original_llm = getattr(trl_vllm_generation, "LLM", None)
+    if original_llm is None or getattr(original_llm, "_emnlp_eager_init_patch", False):
+        return
+
+    def eager_llm_factory(*llm_args: Any, **llm_kwargs: Any) -> Any:
+        llm_kwargs.setdefault("enforce_eager", True)
+        llm_kwargs.setdefault("compilation_config", 0)
+        return original_llm(*llm_args, **llm_kwargs)
+
+    eager_llm_factory._emnlp_eager_init_patch = True  # type: ignore[attr-defined]
+    eager_llm_factory._emnlp_original_llm = original_llm  # type: ignore[attr-defined]
+    trl_vllm_generation.LLM = eager_llm_factory
+    print("[INFO] patched TRL colocated vLLM init: enforce_eager=True, compilation_config=0")
 
 
 def build_training_config_payload(
