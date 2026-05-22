@@ -772,7 +772,7 @@ def safe_eval_numeric_expression(text: str) -> Optional[float]:
         return None
     try:
         numeric = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     if not math.isfinite(numeric):
         return None
