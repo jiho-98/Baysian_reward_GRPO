@@ -48,6 +48,15 @@ def parse_args() -> argparse.Namespace:
     add_bool_arg(parser, "do_sample", False, "Use stochastic sampling during evaluation.")
     add_bool_arg(parser, "bf16", True, "Use bf16 when CUDA supports it.")
     add_bool_arg(parser, "load_adapter", True, "Load adapter_path as a PEFT LoRA adapter.")
+    add_bool_arg(parser, "use_vllm", False, "Use vLLM instead of transformers.generate for evaluation.")
+    parser.add_argument("--vllm_tensor_parallel_size", type=int, default=1)
+    parser.add_argument("--vllm_gpu_memory_utilization", type=float, default=0.9)
+    parser.add_argument(
+        "--vllm_max_model_length",
+        type=int,
+        default=0,
+        help="vLLM max model length. 0 uses max_prompt_length + max_new_tokens.",
+    )
     return parser.parse_args()
 
 
@@ -112,6 +121,10 @@ def get_first_device(model: Any):
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def count_tokens(tokenizer: Any, text: str) -> int:
+    return len(tokenizer(text, add_special_tokens=False)["input_ids"])
+
+
 def main() -> None:
     args = parse_args()
     if args.batch_size <= 0:
@@ -124,7 +137,7 @@ def main() -> None:
     random.seed(args.seed)
 
     import torch
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoTokenizer
 
     eval_path = Path(args.eval_metadata_path)
     output_dir = Path(args.output_dir)
@@ -176,29 +189,76 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    dtype = None
-    if torch.cuda.is_available():
-        if args.bf16 and torch.cuda.is_bf16_supported():
-            dtype = torch.bfloat16
-        else:
-            dtype = torch.float16
+    model = None
+    device = None
+    llm = None
+    sampling_params = None
+    lora_request = None
 
-    model_kwargs: dict[str, Any] = {"trust_remote_code": True}
-    if torch.cuda.is_available():
-        model_kwargs["device_map"] = "auto"
-        if dtype is not None:
-            model_kwargs["torch_dtype"] = dtype
+    if args.use_vllm:
+        try:
+            from vllm import LLM, SamplingParams
+            from vllm.lora.request import LoRARequest
+        except ImportError as exc:
+            raise RuntimeError(
+                "vLLM is not installed in this environment. Install it before running eval with --use_vllm."
+            ) from exc
 
-    model = AutoModelForCausalLM.from_pretrained(model_load_name, **model_kwargs)
+        vllm_dtype = "auto"
+        if torch.cuda.is_available():
+            vllm_dtype = "bfloat16" if args.bf16 and torch.cuda.is_bf16_supported() else "float16"
+        max_model_len = (
+            args.vllm_max_model_length
+            if args.vllm_max_model_length and args.vllm_max_model_length > 0
+            else args.max_prompt_length + args.max_new_tokens
+        )
+        llm_kwargs: dict[str, Any] = {
+            "model": model_load_name,
+            "trust_remote_code": True,
+            "dtype": vllm_dtype,
+            "tensor_parallel_size": args.vllm_tensor_parallel_size,
+            "gpu_memory_utilization": args.vllm_gpu_memory_utilization,
+            "max_model_len": max_model_len,
+            "enable_lora": bool(load_adapter),
+        }
+        print(f"[INFO] loading vLLM backend: {llm_kwargs}")
+        llm = LLM(**llm_kwargs)
+        sampling_params = SamplingParams(
+            n=1,
+            max_tokens=args.max_new_tokens,
+            temperature=max(float(args.temperature), 1e-6) if args.do_sample else 0.0,
+            top_p=float(args.top_p) if args.do_sample else 1.0,
+        )
+        if load_adapter:
+            lora_request = LoRARequest("solver_adapter", 1, str(adapter_path))
+        elif args.adapter_path and Path(args.adapter_path).exists():
+            print("[INFO] adapter_path is not loaded as a PEFT adapter.")
+    else:
+        from transformers import AutoModelForCausalLM
 
-    if load_adapter:
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model, args.adapter_path)
-    elif args.adapter_path and Path(args.adapter_path).exists():
-        print("[INFO] adapter_path is not loaded as a PEFT adapter.")
+        dtype = None
+        if torch.cuda.is_available():
+            if args.bf16 and torch.cuda.is_bf16_supported():
+                dtype = torch.bfloat16
+            else:
+                dtype = torch.float16
 
-    model.eval()
-    device = get_first_device(model)
+        model_kwargs: dict[str, Any] = {"trust_remote_code": True}
+        if torch.cuda.is_available():
+            model_kwargs["device_map"] = "auto"
+            if dtype is not None:
+                model_kwargs["torch_dtype"] = dtype
+
+        model = AutoModelForCausalLM.from_pretrained(model_load_name, **model_kwargs)
+
+        if load_adapter:
+            from peft import PeftModel
+            model = PeftModel.from_pretrained(model, args.adapter_path)
+        elif args.adapter_path and Path(args.adapter_path).exists():
+            print("[INFO] adapter_path is not loaded as a PEFT adapter.")
+
+        model.eval()
+        device = get_first_device(model)
 
     predictions_path = output_dir / "predictions.jsonl"
     summary_path = output_dir / "summary.json"
@@ -214,31 +274,53 @@ def main() -> None:
         batch_rows = rows[start : start + args.batch_size]
         prompts = [render_prompt(str(row.get("problem", "")), tokenizer) for row in batch_rows]
 
-        inputs = tokenizer(
-            prompts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.max_prompt_length,
-        )
-        inputs = {k: v.to(device) for k, v in inputs.items()}
+        if args.use_vllm:
+            truncated_prompts: list[str] = []
+            for prompt in prompts:
+                prompt_ids = tokenizer(
+                    prompt,
+                    truncation=True,
+                    max_length=args.max_prompt_length,
+                    add_special_tokens=False,
+                )["input_ids"]
+                truncated_prompts.append(tokenizer.decode(prompt_ids, skip_special_tokens=False))
+            assert llm is not None
+            assert sampling_params is not None
+            outputs = llm.generate(
+                truncated_prompts,
+                sampling_params,
+                lora_request=lora_request,
+            )
+            decoded = [item.outputs[0].text if item.outputs else "" for item in outputs]
+            completion_lengths = [count_tokens(tokenizer, completion) for completion in decoded]
+        else:
+            assert model is not None
+            inputs = tokenizer(
+                prompts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=args.max_prompt_length,
+            )
+            inputs = {k: v.to(device) for k, v in inputs.items()}
 
-        generation_kwargs: dict[str, Any] = {
-            "max_new_tokens": args.max_new_tokens,
-            "pad_token_id": tokenizer.pad_token_id,
-            "eos_token_id": tokenizer.eos_token_id,
-            "do_sample": bool(args.do_sample),
-        }
-        if args.do_sample:
-            generation_kwargs["temperature"] = max(float(args.temperature), 1e-6)
-            generation_kwargs["top_p"] = float(args.top_p)
+            generation_kwargs: dict[str, Any] = {
+                "max_new_tokens": args.max_new_tokens,
+                "pad_token_id": tokenizer.pad_token_id,
+                "eos_token_id": tokenizer.eos_token_id,
+                "do_sample": bool(args.do_sample),
+            }
+            if args.do_sample:
+                generation_kwargs["temperature"] = max(float(args.temperature), 1e-6)
+                generation_kwargs["top_p"] = float(args.top_p)
 
-        with torch.no_grad():
-            output_ids = model.generate(**inputs, **generation_kwargs)
+            with torch.no_grad():
+                output_ids = model.generate(**inputs, **generation_kwargs)
 
-        prompt_len = inputs["input_ids"].shape[1]
-        continuation_ids = output_ids[:, prompt_len:]
-        decoded = tokenizer.batch_decode(continuation_ids, skip_special_tokens=True)
+            prompt_len = inputs["input_ids"].shape[1]
+            continuation_ids = output_ids[:, prompt_len:]
+            decoded = tokenizer.batch_decode(continuation_ids, skip_special_tokens=True)
+            completion_lengths = [int(len(ids)) for ids in continuation_ids]
 
         for local_idx, (row, completion) in enumerate(zip(batch_rows, decoded)):
             problem = str(row.get("problem", ""))
@@ -251,7 +333,7 @@ def main() -> None:
             correct += int(is_correct)
             format_success += int(bool(parsed.get("exact_format_success")))
             suspicious_count += int(bool(parsed.get("suspicious_final_answer")))
-            generated_lengths.append(len(continuation_ids[local_idx]))
+            generated_lengths.append(completion_lengths[local_idx])
 
             out = {
                 "index": start + local_idx,
@@ -316,6 +398,11 @@ def main() -> None:
         "max_prompt_length": args.max_prompt_length,
         "max_new_tokens": args.max_new_tokens,
         "seed": args.seed,
+        "inference_backend": "vllm" if args.use_vllm else "transformers",
+        "use_vllm": bool(args.use_vllm),
+        "vllm_tensor_parallel_size": args.vllm_tensor_parallel_size if args.use_vllm else None,
+        "vllm_gpu_memory_utilization": args.vllm_gpu_memory_utilization if args.use_vllm else None,
+        "vllm_max_model_length": args.vllm_max_model_length if args.use_vllm else None,
         "generated_length_mean": statistics.fmean(generated_lengths) if generated_lengths else None,
         "predictions_path": str(predictions_path),
     }

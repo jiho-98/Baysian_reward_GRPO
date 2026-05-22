@@ -126,6 +126,50 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default: bool, help
     parser.set_defaults(**{name: default})
 
 
+def add_vllm_args(parser: argparse.ArgumentParser) -> None:
+    add_bool_arg(
+        parser,
+        "use_vllm",
+        False,
+        "Use vLLM for GRPO rollout generation when supported by the installed TRL version.",
+    )
+    parser.add_argument(
+        "--vllm_mode",
+        choices=("colocate", "server"),
+        default="colocate",
+        help="TRL vLLM execution mode. colocate keeps the vLLM engine in the trainer process.",
+    )
+    parser.add_argument(
+        "--vllm_model_impl",
+        default="vllm",
+        help="TRL vLLM model implementation.",
+    )
+    add_bool_arg(
+        parser,
+        "vllm_enable_sleep_mode",
+        False,
+        "Enable TRL/vLLM sleep mode to release cache memory between rollout phases when available.",
+    )
+    parser.add_argument("--vllm_server_base_url", default=None)
+    parser.add_argument("--vllm_server_host", default="0.0.0.0")
+    parser.add_argument("--vllm_server_port", type=int, default=8000)
+    parser.add_argument("--vllm_server_timeout", type=float, default=240.0)
+    parser.add_argument("--vllm_group_port", type=int, default=51216)
+    parser.add_argument(
+        "--vllm_gpu_memory_utilization",
+        type=float,
+        default=0.3,
+        help="Fraction of GPU memory vLLM may reserve in colocate/server mode.",
+    )
+    parser.add_argument(
+        "--vllm_max_model_length",
+        type=int,
+        default=0,
+        help="vLLM max model length. 0 lets TRL/vLLM infer it from the model/config.",
+    )
+    parser.add_argument("--vllm_tensor_parallel_size", type=int, default=1)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Answer-only GRPO / RLVR baseline training for Big-Math-RL-Verified."
@@ -145,6 +189,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_completion_length", type=int, default=1024)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.95)
+    add_vllm_args(parser)
 
     parser.add_argument("--learning_rate", type=float, default=5e-6)
     parser.add_argument("--max_steps", type=int, default=200)
@@ -245,7 +290,7 @@ def parse_solve_rate(value: Any) -> Optional[float]:
         return None
     try:
         numeric = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return numeric
 
@@ -1335,6 +1380,25 @@ def create_grpo_config(args: argparse.Namespace, GRPOConfig: Any) -> tuple[Any, 
         "report_to": "none",
         "seed": args.seed,
     }
+    if getattr(args, "use_vllm", False):
+        config_kwargs.update(
+            {
+                "use_vllm": True,
+                "vllm_mode": args.vllm_mode,
+                "vllm_model_impl": args.vllm_model_impl,
+                "vllm_enable_sleep_mode": args.vllm_enable_sleep_mode,
+                "vllm_server_host": args.vllm_server_host,
+                "vllm_server_port": args.vllm_server_port,
+                "vllm_server_timeout": args.vllm_server_timeout,
+                "vllm_group_port": args.vllm_group_port,
+                "vllm_gpu_memory_utilization": args.vllm_gpu_memory_utilization,
+                "vllm_tensor_parallel_size": args.vllm_tensor_parallel_size,
+            }
+        )
+        if args.vllm_server_base_url:
+            config_kwargs["vllm_server_base_url"] = args.vllm_server_base_url
+        if args.vllm_max_model_length and args.vllm_max_model_length > 0:
+            config_kwargs["vllm_max_model_length"] = args.vllm_max_model_length
     filtered_kwargs, dropped = filter_supported_kwargs(GRPOConfig.__init__, config_kwargs)
     return GRPOConfig(**filtered_kwargs), dropped
 
@@ -1404,6 +1468,18 @@ def build_training_config_payload(
         "max_completion_length": args.max_completion_length,
         "temperature": args.temperature,
         "top_p": args.top_p,
+        "use_vllm": getattr(args, "use_vllm", False),
+        "vllm_mode": getattr(args, "vllm_mode", None),
+        "vllm_model_impl": getattr(args, "vllm_model_impl", None),
+        "vllm_enable_sleep_mode": getattr(args, "vllm_enable_sleep_mode", None),
+        "vllm_server_base_url": getattr(args, "vllm_server_base_url", None),
+        "vllm_server_host": getattr(args, "vllm_server_host", None),
+        "vllm_server_port": getattr(args, "vllm_server_port", None),
+        "vllm_server_timeout": getattr(args, "vllm_server_timeout", None),
+        "vllm_group_port": getattr(args, "vllm_group_port", None),
+        "vllm_gpu_memory_utilization": getattr(args, "vllm_gpu_memory_utilization", None),
+        "vllm_max_model_length": getattr(args, "vllm_max_model_length", None),
+        "vllm_tensor_parallel_size": getattr(args, "vllm_tensor_parallel_size", None),
         "learning_rate": args.learning_rate,
         "max_steps": args.max_steps,
         "per_device_train_batch_size": args.per_device_train_batch_size,

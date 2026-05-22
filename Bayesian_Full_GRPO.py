@@ -26,6 +26,7 @@ from Answer_only_GRPO import (
     DEFAULT_DATASET_NAME,
     DEFAULT_MODEL_NAME,
     add_bool_arg,
+    add_vllm_args,
     align_gold_answers,
     align_values,
     build_grpo_training_components,
@@ -151,6 +152,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_completion_length", type=int, default=1024)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.95)
+    add_vllm_args(parser)
 
     parser.add_argument("--learning_rate", type=float, default=5e-6)
     parser.add_argument("--max_steps", type=int, default=200)
