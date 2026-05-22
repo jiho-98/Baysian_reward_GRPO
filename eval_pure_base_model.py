@@ -115,6 +115,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry_run", action="store_true", help="Resolve jobs and paths without loading the model.")
     add_bool_arg(parser, "do_sample", False, "Use stochastic sampling during evaluation.")
     add_bool_arg(parser, "bf16", True, "Use bf16 when CUDA supports it.")
+    add_bool_arg(parser, "use_vllm", False, "Use vLLM instead of transformers.generate for inference.")
+    parser.add_argument("--vllm_gpu_memory_utilization", type=float, default=0.9)
+    parser.add_argument("--vllm_tensor_parallel_size", type=int, default=1)
+    parser.add_argument("--vllm_max_model_len", type=int, default=0)
+    parser.add_argument(
+        "--vllm_dtype",
+        default="auto",
+        choices=("auto", "bfloat16", "float16", "half", "float32"),
+    )
     return parser.parse_args()
 
 
@@ -193,6 +202,41 @@ def get_first_device(model: Any):
         import torch
 
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def build_vllm_sampling_params(args: argparse.Namespace, max_new_tokens: int):
+    try:
+        from vllm import SamplingParams
+    except ImportError as exc:
+        raise RuntimeError("vLLM is not installed in this environment. Install `vllm` before using --use_vllm.") from exc
+
+    return SamplingParams(
+        max_tokens=max_new_tokens,
+        temperature=max(float(args.temperature), 1e-6) if args.do_sample else 0.0,
+        top_p=float(args.top_p) if args.do_sample else 1.0,
+    )
+
+
+def build_vllm_engine(args: argparse.Namespace, model_name: str):
+    try:
+        from vllm import LLM
+    except ImportError as exc:
+        raise RuntimeError("vLLM is not installed in this environment. Install `vllm` before using --use_vllm.") from exc
+
+    dtype = args.vllm_dtype
+    if dtype == "auto" and args.bf16:
+        dtype = "bfloat16"
+
+    engine_kwargs: dict[str, Any] = {
+        "model": model_name,
+        "trust_remote_code": True,
+        "dtype": dtype,
+        "tensor_parallel_size": args.vllm_tensor_parallel_size,
+        "gpu_memory_utilization": args.vllm_gpu_memory_utilization,
+    }
+    if args.vllm_max_model_len > 0:
+        engine_kwargs["max_model_len"] = args.vllm_max_model_len
+    return LLM(**engine_kwargs)
 
 
 def clean_answer_candidate(candidate: str) -> str:
@@ -301,9 +345,10 @@ def resolve_eval_jobs(args: argparse.Namespace, model_name: str) -> list[dict[st
 
 def evaluate_dataset(
     *,
-    model: Any,
+    model: Any | None,
+    llm: Any | None,
     tokenizer: Any,
-    device: Any,
+    device: Any | None,
     model_name: str,
     dataset_key: str,
     eval_path: Path,
@@ -339,33 +384,43 @@ def evaluate_dataset(
     for start in range(0, len(rows), args.batch_size):
         batch_rows = rows[start : start + args.batch_size]
         prompts = [str(row.get("problem", "") or "") for row in batch_rows]
-        inputs = tokenizer(
-            prompts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.max_prompt_length,
-        )
-        inputs = {key: value.to(device) for key, value in inputs.items()}
+        if args.use_vllm:
+            if llm is None:
+                raise RuntimeError("vLLM engine is not initialized.")
+            outputs = llm.generate(prompts, build_vllm_sampling_params(args, max_new_tokens))
+            decoded = [output.outputs[0].text for output in outputs]
+            batch_generated_lengths = [len(output.outputs[0].token_ids) for output in outputs]
+        else:
+            if model is None or device is None:
+                raise RuntimeError("Transformers model is not initialized.")
+            inputs = tokenizer(
+                prompts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=args.max_prompt_length,
+            )
+            inputs = {key: value.to(device) for key, value in inputs.items()}
 
-        generation_kwargs: dict[str, Any] = {
-            "max_new_tokens": max_new_tokens,
-            "pad_token_id": tokenizer.pad_token_id,
-            "eos_token_id": tokenizer.eos_token_id,
-            "do_sample": bool(args.do_sample),
-        }
-        if args.do_sample:
-            generation_kwargs["temperature"] = max(float(args.temperature), 1e-6)
-            generation_kwargs["top_p"] = float(args.top_p)
+            generation_kwargs: dict[str, Any] = {
+                "max_new_tokens": max_new_tokens,
+                "pad_token_id": tokenizer.pad_token_id,
+                "eos_token_id": tokenizer.eos_token_id,
+                "do_sample": bool(args.do_sample),
+            }
+            if args.do_sample:
+                generation_kwargs["temperature"] = max(float(args.temperature), 1e-6)
+                generation_kwargs["top_p"] = float(args.top_p)
 
-        import torch
+            import torch
 
-        with torch.no_grad():
-            output_ids = model.generate(**inputs, **generation_kwargs)
+            with torch.no_grad():
+                output_ids = model.generate(**inputs, **generation_kwargs)
 
-        prompt_len = inputs["input_ids"].shape[1]
-        continuation_ids = output_ids[:, prompt_len:]
-        decoded = tokenizer.batch_decode(continuation_ids, skip_special_tokens=True)
+            prompt_len = inputs["input_ids"].shape[1]
+            continuation_ids = output_ids[:, prompt_len:]
+            decoded = tokenizer.batch_decode(continuation_ids, skip_special_tokens=True)
+            batch_generated_lengths = [len(continuation_ids[local_idx]) for local_idx in range(len(batch_rows))]
 
         for local_idx, (row, prompt, completion) in enumerate(zip(batch_rows, prompts, decoded)):
             problem = str(row.get("problem", "") or "")
@@ -377,7 +432,7 @@ def evaluate_dataset(
 
             correct += int(is_correct)
             extraction_success += int(has_answer)
-            generated_lengths.append(len(continuation_ids[local_idx]))
+            generated_lengths.append(batch_generated_lengths[local_idx])
 
             out = {
                 "index": start + local_idx,
@@ -437,6 +492,11 @@ def evaluate_dataset(
         "solve_rate_max": max(solve_rates) if solve_rates else None,
         "solve_rate_mean": statistics.fmean(solve_rates) if solve_rates else None,
         "batch_size": args.batch_size,
+        "inference_backend": "vllm" if args.use_vllm else "transformers",
+        "use_vllm": bool(args.use_vllm),
+        "vllm_gpu_memory_utilization": args.vllm_gpu_memory_utilization if args.use_vllm else None,
+        "vllm_tensor_parallel_size": args.vllm_tensor_parallel_size if args.use_vllm else None,
+        "vllm_max_model_len": args.vllm_max_model_len if args.use_vllm else None,
         "do_sample": bool(args.do_sample),
         "temperature": args.temperature if args.do_sample else None,
         "top_p": args.top_p if args.do_sample else None,
@@ -470,6 +530,7 @@ def main() -> None:
                 {
                     "model_name": model_name,
                     "prompt_mode": "raw_problem_only",
+                    "inference_backend": "vllm" if args.use_vllm else "transformers",
                     "jobs": [
                         {
                             "dataset_key": job["dataset_key"],
@@ -518,15 +579,24 @@ def main() -> None:
         if dtype is not None:
             model_kwargs["torch_dtype"] = dtype
 
-    model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
-    model.eval()
-    device = get_first_device(model)
+    model = None
+    device = None
+    llm = None
+    if args.use_vllm:
+        llm = build_vllm_engine(args, model_name)
+        print("[INFO] inference_backend=vllm")
+    else:
+        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        model.eval()
+        device = get_first_device(model)
+        print("[INFO] inference_backend=transformers")
 
     summaries = []
     for job in jobs:
         summaries.append(
             evaluate_dataset(
                 model=model,
+                llm=llm,
                 tokenizer=tokenizer,
                 device=device,
                 model_name=model_name,

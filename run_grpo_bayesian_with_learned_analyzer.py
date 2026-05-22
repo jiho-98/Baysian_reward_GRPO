@@ -69,6 +69,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lora_r", type=int, default=16)
     parser.add_argument("--lora_alpha", type=int, default=32)
     parser.add_argument("--lora_dropout", type=float, default=0.05)
+    add_bool_arg(parser, "use_vllm", False, "Use vLLM for GRPO rollout generation and solver eval.")
+    parser.add_argument("--vllm_mode", choices=("colocate", "server"), default="colocate")
+    parser.add_argument("--vllm_server_base_url", default=None)
+    parser.add_argument("--vllm_server_host", default="0.0.0.0")
+    parser.add_argument("--vllm_server_port", type=int, default=8000)
+    parser.add_argument("--vllm_server_timeout", type=float, default=240.0)
+    parser.add_argument("--vllm_group_port", type=int, default=51216)
+    parser.add_argument("--vllm_gpu_memory_utilization", type=float, default=0.3)
+    parser.add_argument("--vllm_eval_gpu_memory_utilization", type=float, default=0.9)
+    parser.add_argument("--vllm_max_model_length", type=int, default=0)
+    parser.add_argument("--vllm_tensor_parallel_size", type=int, default=1)
     parser.add_argument("--logging_steps", type=int, default=5)
     parser.add_argument("--save_steps", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
@@ -246,6 +257,10 @@ def main() -> None:
                 "dataset_name": args.dataset_name,
                 "use_lora": args.use_lora,
                 "gradient_checkpointing": args.gradient_checkpointing,
+                "use_vllm": args.use_vllm,
+                "vllm_mode": args.vllm_mode if args.use_vllm else None,
+                "vllm_gpu_memory_utilization": args.vllm_gpu_memory_utilization if args.use_vllm else None,
+                "vllm_eval_gpu_memory_utilization": args.vllm_eval_gpu_memory_utilization if args.use_vllm else None,
             },
             ensure_ascii=False,
             indent=2,
@@ -333,6 +348,30 @@ def main() -> None:
     )
     if args.bf16:
         train_cmd.append("--bf16")
+    if args.use_vllm:
+        train_cmd.extend(
+            [
+                "--use_vllm",
+                "--vllm_mode",
+                args.vllm_mode,
+                "--vllm_server_host",
+                args.vllm_server_host,
+                "--vllm_server_port",
+                str(args.vllm_server_port),
+                "--vllm_server_timeout",
+                str(args.vllm_server_timeout),
+                "--vllm_group_port",
+                str(args.vllm_group_port),
+                "--vllm_gpu_memory_utilization",
+                str(args.vllm_gpu_memory_utilization),
+                "--vllm_tensor_parallel_size",
+                str(args.vllm_tensor_parallel_size),
+            ]
+        )
+        if args.vllm_server_base_url:
+            train_cmd.extend(["--vllm_server_base_url", args.vllm_server_base_url])
+        if args.vllm_max_model_length > 0:
+            train_cmd.extend(["--vllm_max_model_length", str(args.vllm_max_model_length)])
 
     eval_valid_cmd = [
         "python3",
@@ -355,6 +394,18 @@ def main() -> None:
         str(args.seed),
         "--no_do_sample",
     ]
+    if args.use_vllm:
+        eval_valid_cmd.extend(
+            [
+                "--use_vllm",
+                "--vllm_gpu_memory_utilization",
+                str(args.vllm_eval_gpu_memory_utilization),
+                "--vllm_tensor_parallel_size",
+                str(args.vllm_tensor_parallel_size),
+            ]
+        )
+        if args.vllm_max_model_length > 0:
+            eval_valid_cmd.extend(["--vllm_max_model_length", str(args.vllm_max_model_length)])
     eval_test_cmd = [
         "python3",
         "eval_solver_checkpoint.py",
@@ -376,6 +427,18 @@ def main() -> None:
         str(args.seed),
         "--no_do_sample",
     ]
+    if args.use_vllm:
+        eval_test_cmd.extend(
+            [
+                "--use_vllm",
+                "--vllm_gpu_memory_utilization",
+                str(args.vllm_eval_gpu_memory_utilization),
+                "--vllm_tensor_parallel_size",
+                str(args.vllm_tensor_parallel_size),
+            ]
+        )
+        if args.vllm_max_model_length > 0:
+            eval_test_cmd.extend(["--vllm_max_model_length", str(args.vllm_max_model_length)])
     diagnostics_cmd = [
         "python3",
         "analyze_bayesian_debug_jsonl.py",
