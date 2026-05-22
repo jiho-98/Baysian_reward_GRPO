@@ -174,7 +174,6 @@ def parse_args() -> argparse.Namespace:
 
     add_bool_arg(parser, "bf16", True, "Use bf16 when supported.")
     add_bool_arg(parser, "gradient_checkpointing", True, "Enable gradient checkpointing.")
-    add_vllm_args(parser)
 
     add_bool_arg(parser, "smoke_test_only", False, "Run prompt-format smoke test only.")
     parser.add_argument("--smoke_test_examples", type=int, default=8)
