@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Evaluate base models with raw problem-only inputs.
+"""Evaluate base models with problem-only inputs.
 
 This is intentionally different from the prompted baseline eval. It does not
-use a system prompt, a user instruction, or the tokenizer chat template. Each
-input is exactly the metadata `problem` text, and answer extraction is
-format-agnostic.
+use a system prompt or an extra user instruction. By default each input is
+exactly the metadata `problem` text, and answer extraction is format-agnostic.
+Optionally, `--use_chat_template` wraps only that problem text with the
+tokenizer chat template and an assistant generation prompt.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import statistics
@@ -79,7 +81,7 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default: bool, help
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Pure base eval: raw problem text in, no prompt/instruction/chat template."
+        description="Pure base eval: problem text in, no system prompt or extra instruction."
     )
     parser.add_argument("--model_name", default=DEFAULT_MODEL_NAME)
     parser.add_argument(
@@ -115,6 +117,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry_run", action="store_true", help="Resolve jobs and paths without loading the model.")
     add_bool_arg(parser, "do_sample", False, "Use stochastic sampling during evaluation.")
     add_bool_arg(parser, "bf16", True, "Use bf16 when CUDA supports it.")
+    add_bool_arg(
+        parser,
+        "use_chat_template",
+        False,
+        "Wrap only the problem text with the tokenizer chat template.",
+    )
     add_bool_arg(parser, "use_vllm", False, "Use vLLM instead of transformers.generate for inference.")
     parser.add_argument("--vllm_gpu_memory_utilization", type=float, default=0.9)
     parser.add_argument("--vllm_tensor_parallel_size", type=int, default=1)
@@ -218,6 +226,9 @@ def build_vllm_sampling_params(args: argparse.Namespace, max_new_tokens: int):
 
 
 def build_vllm_engine(args: argparse.Namespace, model_name: str):
+    # FlashInfer sampler can fail on some CUDA 13 / Blackwell stacks during
+    # engine profiling. Keep vLLM enabled but force its native sampler.
+    os.environ["VLLM_USE_FLASHINFER_SAMPLER"] = "0"
     try:
         from vllm import LLM
     except ImportError as exc:
@@ -233,10 +244,31 @@ def build_vllm_engine(args: argparse.Namespace, model_name: str):
         "dtype": dtype,
         "tensor_parallel_size": args.vllm_tensor_parallel_size,
         "gpu_memory_utilization": args.vllm_gpu_memory_utilization,
+        # Keep vLLM eval stable on the CUDA/PyTorch/vLLM 0.21 stack by avoiding
+        # the torch.compile path that can fail during Qwen3 profile runs.
+        "enforce_eager": True,
+        "compilation_config": 0,
     }
     if args.vllm_max_model_len > 0:
         engine_kwargs["max_model_len"] = args.vllm_max_model_len
     return LLM(**engine_kwargs)
+
+
+def prompt_mode(args: argparse.Namespace) -> str:
+    return "chat_template_problem_only" if args.use_chat_template else "raw_problem_only"
+
+
+def build_input_prompt(problem: str, tokenizer: Any, args: argparse.Namespace) -> str:
+    problem = str(problem or "")
+    if not args.use_chat_template:
+        return problem
+    if not hasattr(tokenizer, "apply_chat_template"):
+        raise RuntimeError("Tokenizer does not support apply_chat_template, but --use_chat_template was set.")
+    return tokenizer.apply_chat_template(
+        [{"role": "user", "content": problem}],
+        tokenize=False,
+        add_generation_prompt=True,
+    )
 
 
 def clean_answer_candidate(candidate: str) -> str:
@@ -383,7 +415,7 @@ def evaluate_dataset(
 
     for start in range(0, len(rows), args.batch_size):
         batch_rows = rows[start : start + args.batch_size]
-        prompts = [str(row.get("problem", "") or "") for row in batch_rows]
+        prompts = [build_input_prompt(str(row.get("problem", "") or ""), tokenizer, args) for row in batch_rows]
         if args.use_vllm:
             if llm is None:
                 raise RuntimeError("vLLM engine is not initialized.")
@@ -470,10 +502,10 @@ def evaluate_dataset(
         "model_name": model_name,
         "dataset_key": dataset_key,
         "eval_metadata_path": str(eval_path),
-        "prompt_mode": "raw_problem_only",
+        "prompt_mode": prompt_mode(args),
         "uses_system_prompt": False,
         "uses_user_instruction": False,
-        "uses_chat_template": False,
+        "uses_chat_template": bool(args.use_chat_template),
         "num_examples": len(rows),
         "correct": correct,
         "correct_count": correct,
@@ -497,6 +529,9 @@ def evaluate_dataset(
         "vllm_gpu_memory_utilization": args.vllm_gpu_memory_utilization if args.use_vllm else None,
         "vllm_tensor_parallel_size": args.vllm_tensor_parallel_size if args.use_vllm else None,
         "vllm_max_model_len": args.vllm_max_model_len if args.use_vllm else None,
+        "vllm_enforce_eager": True if args.use_vllm else None,
+        "vllm_compilation_config": 0 if args.use_vllm else None,
+        "vllm_use_flashinfer_sampler": os.environ.get("VLLM_USE_FLASHINFER_SAMPLER") if args.use_vllm else None,
         "do_sample": bool(args.do_sample),
         "temperature": args.temperature if args.do_sample else None,
         "top_p": args.top_p if args.do_sample else None,
@@ -529,7 +564,7 @@ def main() -> None:
             json.dumps(
                 {
                     "model_name": model_name,
-                    "prompt_mode": "raw_problem_only",
+                    "prompt_mode": prompt_mode(args),
                     "inference_backend": "vllm" if args.use_vllm else "transformers",
                     "jobs": [
                         {
@@ -557,8 +592,8 @@ def main() -> None:
 
     print("[INFO] pure-base eval")
     print(f"[INFO] model={model_name}")
-    print("[INFO] prompt_mode=raw_problem_only")
-    print("[INFO] no system prompt, no user instruction, no chat template")
+    print(f"[INFO] prompt_mode={prompt_mode(args)}")
+    print(f"[INFO] no system prompt, no extra user instruction, chat_template={bool(args.use_chat_template)}")
     print(f"[INFO] jobs={[job['dataset_key'] for job in jobs]}")
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
@@ -615,7 +650,7 @@ def main() -> None:
             json.dumps(
                 {
                     "model_name": model_name,
-                    "prompt_mode": "raw_problem_only",
+                    "prompt_mode": prompt_mode(args),
                     "datasets": summaries,
                 },
                 ensure_ascii=False,

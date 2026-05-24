@@ -71,7 +71,6 @@ This builds the fixed metadata split for fair comparisons.
 These are intentionally not tracked in GitHub:
 
 - `.venv/`
-- `.venv_qwen/`
 - `.venv_math500/`
 - `outputs/`
 - `logs/`
