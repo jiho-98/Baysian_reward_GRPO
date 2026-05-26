@@ -3,6 +3,8 @@
 .codex/
 .git.broken_*/
 hf_cache/
+.hf_cache/
+external/
 logs/
 results/
 __pycache__/

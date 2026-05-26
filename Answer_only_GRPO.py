@@ -5,17 +5,35 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import math
 import inspect
 import json
 import random
 import re
 import statistics
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Optional
+
+
+def ensure_venv_bin_on_path() -> None:
+    """Expose venv console scripts such as ninja to subprocess-based backends."""
+    candidate_bins = [Path(sys.prefix) / "bin", Path(sys.executable).resolve().parent]
+    path_parts = os.environ.get("PATH", "").split(os.pathsep)
+    for venv_bin in reversed(candidate_bins):
+        if not ((venv_bin / "python").exists() or (venv_bin / "python3").exists()):
+            continue
+        venv_bin_text = str(venv_bin)
+        if venv_bin_text not in path_parts:
+            os.environ["PATH"] = venv_bin_text + os.pathsep + os.environ.get("PATH", "")
+            path_parts.insert(0, venv_bin_text)
+
+
+ensure_venv_bin_on_path()
 
 
 DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
@@ -197,6 +215,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4)
     parser.add_argument("--logging_steps", type=int, default=5)
     parser.add_argument("--save_steps", type=int, default=100)
+    parser.add_argument(
+        "--loss_type",
+        choices=[
+            "grpo",
+            "dapo",
+            "bnpo",
+            "dr_grpo",
+            "cispo",
+            "sapo",
+            "vespo",
+            "luspo",
+        ],
+        default=None,
+        help="Optional TRL GRPO loss formulation override, e.g. dr_grpo for the Dr.GRPO external baseline.",
+    )
+    parser.add_argument("--scale_rewards", choices=["group", "batch", "none"], default=None)
+    parser.add_argument("--importance_sampling_level", choices=["token", "sequence"], default=None)
+    parser.add_argument("--epsilon", type=float, default=None)
+    parser.add_argument("--epsilon_high", type=float, default=None)
+    parser.add_argument("--beta", type=float, default=None)
     parser.add_argument(
         "--progress_interval_percent",
         type=int,
@@ -1399,6 +1437,17 @@ def create_grpo_config(args: argparse.Namespace, GRPOConfig: Any) -> tuple[Any, 
             config_kwargs["vllm_server_base_url"] = args.vllm_server_base_url
         if args.vllm_max_model_length and args.vllm_max_model_length > 0:
             config_kwargs["vllm_max_model_length"] = args.vllm_max_model_length
+    for optional_key in (
+        "loss_type",
+        "scale_rewards",
+        "importance_sampling_level",
+        "epsilon",
+        "epsilon_high",
+        "beta",
+    ):
+        optional_value = getattr(args, optional_key, None)
+        if optional_value is not None:
+            config_kwargs[optional_key] = optional_value
     filtered_kwargs, dropped = filter_supported_kwargs(GRPOConfig.__init__, config_kwargs)
     return GRPOConfig(**filtered_kwargs), dropped
 
@@ -1512,6 +1561,12 @@ def build_training_config_payload(
         "gradient_accumulation_steps": args.gradient_accumulation_steps,
         "logging_steps": args.logging_steps,
         "save_steps": args.save_steps,
+        "loss_type": getattr(args, "loss_type", None),
+        "scale_rewards": getattr(args, "scale_rewards", None),
+        "importance_sampling_level": getattr(args, "importance_sampling_level", None),
+        "epsilon": getattr(args, "epsilon", None),
+        "epsilon_high": getattr(args, "epsilon_high", None),
+        "beta": getattr(args, "beta", None),
         "progress_interval_percent": args.progress_interval_percent,
         "use_lora": args.use_lora,
         "lora_r": args.lora_r,
