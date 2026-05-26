@@ -1459,3 +1459,182 @@ nohup python3 eval_solver_checkpoint.py \
 - Required incoming adapter manifest: `outputs/unified_4096_eval_5x/required_adapters.md`
 - Required incoming adapter root: `outputs/incoming/unified_4096_eval_adapters`
 - Current check-only result: 300 planned eval jobs, 23 missing adapter cells, incoming directories created.
+
+## Eval Suite Update - Main Table Structured-Base 4096 5x
+
+- Added at: 2026-05-24 20:48 KST
+- Status: old pure-base-included GPU0/GPU1 eval stopped; script manifest updated
+- Reason: main paper table now uses `Base` as unadapted Qwen3 with the structured solver prompt, not raw/problem-only or pure chat-template prompt-only eval.
+- Script: `scripts/run_unified_4096_eval_repeats.py`
+- New table rows per model:
+  - `Base`
+  - `GRPO`
+  - `BPR-GRPO (Ours)`
+  - `BPR-GRPO (learned analyzer)`
+- Removed from main-table rerun: `Pure-based`
+- Planned jobs after update: 12 rows x 4 benchmarks x 5 repeats = 240 eval jobs
+- Eval config:
+  - max prompt length: 2048
+  - max new tokens: 4096 for all benchmarks
+  - vLLM max model length: 6144
+  - decoding: greedy / `--no_do_sample`
+  - repeats: 5
+  - seed schedule: 42, 43, 44, 45, 46
+- Split recommendation:
+  - GPU0: GSM8K only
+  - GPU1: MATH-500, MinervaMath, OlympiadBench
+
+## Queued Train Suite - Dr.GRPO Answer-only gap-fill on PRO6000
+
+
+- Added at: 2026-05-25 06:59:50 KST
+- Status: queued, waiting for GPU memory below 20000 MiB
+- Queue GPU0: Qwen3-1.7B BigMath -> Qwen3-1.7B GSM8K
+- Queue GPU1: Qwen3-1.7B MATH-500 -> Qwen3-4B GSM8K
+- Method: Dr.GRPO external baseline, answer-only correctness reward, loss_type=dr_grpo, scale_rewards=none, beta=0.0
+- Launcher: scripts/run_drgrpo_answer_only_24h_gap_fill_queue.sh
+- Logs: outputs/drgrpo_answer_only_24h/logs/gpu0_queue.nohup.log, outputs/drgrpo_answer_only_24h/logs/gpu1_queue.nohup.log
+
+## Training Job - Qwen3-1.7B Dr.GRPO Answer-only BigMath BARL-style
+
+- Added at: 2026-05-25 07:00 KST
+- Status: completed
+- Server/GPU: PRO6000 GPU0
+- PID: 715427
+- Method: Dr.GRPO external baseline
+- Reward type: answer_only_correctness
+- Loss/config difference from Answer-only GRPO: loss_type=dr_grpo, scale_rewards=none, beta=0.0
+- This is not BPR reward and not DRA diversity reward.
+- Model: Qwen/Qwen3-1.7B
+- Train metadata: outputs/bigmath_barl_style_12x1024_seed42/selected_train_metadata.jsonl
+- Eval metadata placeholder: outputs/eval_benchmarks/olympiadbench_metadata.jsonl
+- Train size: 12288
+- Eval size during train: 0
+- num_generations: 8
+- max_steps: 1500
+- per_device_train_batch_size: 8
+- gradient_accumulation_steps: 1
+- effective prompt batch: 8
+- max_prompt_length: 2048
+- max_completion_length: 1024
+- learning_rate: 5e-6
+- LoRA: enabled, r=16, alpha=32, dropout=0.05
+- bf16: true
+- gradient_checkpointing: true
+- seed: 42
+- logging_steps: 10
+- save_steps: 100
+- progress_interval_percent: 10
+- Output dir: outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1
+- Log file: outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/logs/train.nohup.log
+- Start progress observed: 6/1500 steps at about 2026-05-25 07:00 KST.
+- Finish time: 2026-05-25 12:23 KST
+- Runtime: 5:24:12
+- Final checkpoint: outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/checkpoint-1500
+- Checkpoint list: checkpoint-100, checkpoint-200, checkpoint-300, checkpoint-400, checkpoint-500, checkpoint-600, checkpoint-700, checkpoint-800, checkpoint-900, checkpoint-1000, checkpoint-1100, checkpoint-1200, checkpoint-1300, checkpoint-1400, checkpoint-1500
+- Completion log line: 100%|██████████| 1500/1500 [5:24:12<00:00, 12.97s/it]
+
+## Training Job - Qwen3-1.7B Dr.GRPO Answer-only MATH-500 full train
+
+- Added at: 2026-05-25 07:00 KST
+- Status: completed
+- Server/GPU: PRO6000 GPU1
+- PID: 715428
+- Method: Dr.GRPO external baseline
+- Reward type: answer_only_correctness
+- Loss/config difference from Answer-only GRPO: loss_type=dr_grpo, scale_rewards=none, beta=0.0
+- This is not BPR reward and not DRA diversity reward.
+- Model: Qwen/Qwen3-1.7B
+- Train metadata: outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_train_metadata.jsonl
+- Eval metadata: outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl
+- Train size: 12000
+- Eval size during train: 0
+- num_generations: 8
+- max_steps: 1500
+- per_device_train_batch_size: 8
+- gradient_accumulation_steps: 1
+- effective prompt batch: 8
+- max_prompt_length: 2048
+- max_completion_length: 1024
+- learning_rate: 5e-6
+- LoRA: enabled, r=16, alpha=32, dropout=0.05
+- bf16: true
+- gradient_checkpointing: true
+- seed: 42
+- logging_steps: 10
+- save_steps: 100
+- progress_interval_percent: 10
+- Output dir: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1
+- Log file: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1/logs/train.nohup.log
+- Start progress observed: 6/1500 steps at about 2026-05-25 07:00 KST.
+- Finish time: 2026-05-25 12:44 KST
+- Runtime: 5:45:15
+- Final checkpoint: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1/checkpoint-1500
+- Checkpoint list: checkpoint-100, checkpoint-200, checkpoint-300, checkpoint-400, checkpoint-500, checkpoint-600, checkpoint-700, checkpoint-800, checkpoint-900, checkpoint-1000, checkpoint-1100, checkpoint-1200, checkpoint-1300, checkpoint-1400, checkpoint-1500
+- Completion log line: 100%|██████████| 1500/1500 [5:45:15<00:00, 13.81s/it]
+
+## Eval Job - Qwen3-1.7B Dr.GRPO Answer-only BigMath checkpoint-1500 AIME26/Minerva/OlympiadBench
+
+- Added at: 2026-05-25 13:02 KST
+- Status: completed
+- Server/GPU: PRO6000 GPU0
+- Launcher PID: 741201
+- Current eval PID at launch: 741207
+- vLLM engine PID at launch: 741572
+- Model: Qwen/Qwen3-1.7B
+- Method: Dr.GRPO external baseline checkpoint eval
+- Adapter checkpoint: outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/checkpoint-1500
+- Eval benchmarks: AIME26, MinervaMath, OlympiadBench
+- Eval metadata:
+  - AIME26: outputs/eval_benchmarks/aime26_metadata.jsonl
+  - MinervaMath: outputs/eval_benchmarks/minervamath_metadata.jsonl
+  - OlympiadBench: outputs/eval_benchmarks/olympiadbench_metadata.jsonl
+- Output root: outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/eval_benchmarks_maxtok4096_vllm
+- Logs:
+  - outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/eval_benchmarks_maxtok4096_vllm/logs/aime26.log
+  - outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/eval_benchmarks_maxtok4096_vllm/logs/minervamath.log
+  - outputs/drgrpo_answer_only_24h/qwen3_1p7b_bigmath_steps1500_n8_bsz8_acc1/eval_benchmarks_maxtok4096_vllm/logs/olympiadbench.log
+- Batch size: 32
+- Max examples: 0
+- Max prompt length: 2048
+- Max new tokens: 4096
+- Decoding: greedy, no sampling
+- Seed: 42
+- BF16: true
+- Load adapter: true
+- Backend: vLLM
+- vLLM config: gpu_memory_utilization=0.85, tensor_parallel_size=1, max_model_length=6144
+- Finish time: 2026-05-25 13:09 KST
+- Results:
+  - AIME26: 2/30 = 6.67%, format success 93.33%, avg generation length 839.03
+  - MinervaMath: 41/272 = 15.07%, format success 98.53%, avg generation length 483.69
+  - OlympiadBench: 185/674 = 27.45%, format success 96.29%, avg generation length 656.06
+
+## Eval Job - Qwen3-1.7B Dr.GRPO Answer-only MATH-500 checkpoint-1500 test
+
+- Added at: 2026-05-25 13:02 KST
+- Status: completed
+- Server/GPU: PRO6000 GPU1
+- Launcher PID: 741204
+- Eval PID at launch: 741213
+- vLLM engine PID at launch: 741565
+- Model: Qwen/Qwen3-1.7B
+- Method: Dr.GRPO external baseline checkpoint eval
+- Adapter checkpoint: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1/checkpoint-1500
+- Eval benchmark: MATH-500 test
+- Eval metadata: outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl
+- Output root: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1/test_eval_checkpoint1500_maxtok4096_vllm
+- Log: outputs/drgrpo_answer_only_24h/qwen3_1p7b_math500_steps1500_n8_bsz8_acc1/test_eval_checkpoint1500_maxtok4096_vllm/logs/math500.log
+- Batch size: 32
+- Max examples: 0
+- Max prompt length: 2048
+- Max new tokens: 4096
+- Decoding: greedy, no sampling
+- Seed: 42
+- BF16: true
+- Load adapter: true
+- Backend: vLLM
+- vLLM config: gpu_memory_utilization=0.85, tensor_parallel_size=1, max_model_length=6144
+- Finish time: 2026-05-25 13:03 KST
+- Results:
+  - MATH-500: 295/500 = 59.00%, format success 97.20%, avg generation length 476.43

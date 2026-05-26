@@ -3,7 +3,6 @@
 
 This script orchestrates the existing evaluation entrypoints:
 
-- eval_pure_base_model.py for pure-base chat-template problem-only evals
 - eval_solver_checkpoint.py for structured-prompt base and LoRA checkpoint evals
 
 It is intentionally manifest-driven because the current result table can use
@@ -58,21 +57,19 @@ def incoming(name: str) -> str:
     return str(INCOMING_ROOT / name)
 
 
-# Canonical table manifest. Adapter paths may be local existing checkpoints or
-# incoming placeholders created for files transferred from other servers.
+# Canonical main-table manifest. "Base" means unadapted Qwen3 with the same
+# structured solver prompt used for GRPO evals, not raw problem-only eval.
+# Adapter paths may be local existing checkpoints or incoming placeholders
+# created for files transferred from other servers.
 RUN_SPECS: list[dict[str, Any]] = [
-    # Pure base: chat-template only, no system prompt, no user instruction.
-    {"model_key": "qwen3_1p7b", "method": "Pure-based", "eval_type": "pure"},
-    {"model_key": "qwen3_4b", "method": "Pure-based", "eval_type": "pure"},
-    {"model_key": "qwen3_8b", "method": "Pure-based", "eval_type": "pure"},
     # Base structured prompt: solver prompt, no adapter.
-    {"model_key": "qwen3_1p7b", "method": "Base (Structured Prompt)", "eval_type": "solver_base"},
-    {"model_key": "qwen3_4b", "method": "Base (Structured Prompt)", "eval_type": "solver_base"},
-    {"model_key": "qwen3_8b", "method": "Base (Structured Prompt)", "eval_type": "solver_base"},
+    {"model_key": "qwen3_1p7b", "method": "Base", "eval_type": "solver_base"},
+    {"model_key": "qwen3_4b", "method": "Base", "eval_type": "solver_base"},
+    {"model_key": "qwen3_8b", "method": "Base", "eval_type": "solver_base"},
     # Answer-only GRPO.
     {
         "model_key": "qwen3_1p7b",
-        "method": "Answer-only GRPO",
+        "method": "GRPO",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_1p7b_answer_only_gsm8k"),
@@ -83,7 +80,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_4b",
-        "method": "Answer-only GRPO",
+        "method": "GRPO",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_4b_answer_only_gsm8k"),
@@ -94,7 +91,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_8b",
-        "method": "Answer-only GRPO",
+        "method": "GRPO",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_8b_answer_only_gsm8k"),
@@ -106,7 +103,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     # BPR-GRPO prompted analyzer.
     {
         "model_key": "qwen3_1p7b",
-        "method": "BPR-GRPO (Prompted Analyzer)",
+        "method": "BPR-GRPO (Ours)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_1p7b_bpr_prompted_gsm8k"),
@@ -117,7 +114,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_4b",
-        "method": "BPR-GRPO (Prompted Analyzer)",
+        "method": "BPR-GRPO (Ours)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_4b_bpr_prompted_gsm8k"),
@@ -128,7 +125,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_8b",
-        "method": "BPR-GRPO (Prompted Analyzer)",
+        "method": "BPR-GRPO (Ours)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": "outputs/gsm8k_experiments/bpr_grpo_prompted_analyzer_qwen3_8b_fulltrain_n8_steps1000_bsz8_acc1_judge768_vllm/checkpoint-1000",
@@ -140,7 +137,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     # BPR-GRPO learned analyzer.
     {
         "model_key": "qwen3_1p7b",
-        "method": "BPR-GRPO (Learned Analyzer)",
+        "method": "BPR-GRPO (learned analyzer)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_1p7b_bpr_learned_gsm8k"),
@@ -151,7 +148,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_4b",
-        "method": "BPR-GRPO (Learned Analyzer)",
+        "method": "BPR-GRPO (learned analyzer)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_4b_bpr_learned_gsm8k"),
@@ -162,7 +159,7 @@ RUN_SPECS: list[dict[str, Any]] = [
     },
     {
         "model_key": "qwen3_8b",
-        "method": "BPR-GRPO (Learned Analyzer)",
+        "method": "BPR-GRPO (learned analyzer)",
         "eval_type": "solver_adapter",
         "adapters": {
             "gsm8k": incoming("qwen3_8b_bpr_learned_gsm8k"),
