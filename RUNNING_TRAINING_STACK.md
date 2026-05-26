@@ -1459,3 +1459,160 @@ nohup python3 eval_solver_checkpoint.py \
 - Required incoming adapter manifest: `outputs/unified_4096_eval_5x/required_adapters.md`
 - Required incoming adapter root: `outputs/incoming/unified_4096_eval_adapters`
 - Current check-only result: 300 planned eval jobs, 23 missing adapter cells, incoming directories created.
+
+## Train - Qwen3-4B Dr.GRPO Answer-only GSM8K
+
+- Added at: 2026-05-24 22:05:27 UTC
+- Status: running
+- Server: EMNLP / GPU3
+- Script: `Answer_only_GRPO.py`
+- Model: `Qwen/Qwen3-4B`
+- Method: Dr.GRPO external baseline
+- Reward: answer-only correctness
+- loss_type: `dr_grpo`
+- scale_rewards: `none`
+- beta: `0.0`
+- output_dir: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1`
+- train_metadata_path: `outputs/gsm8k_full_train_seed42/selected_train_metadata.jsonl`
+- eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_valid_metadata.jsonl`
+- train_size: 7473
+- eval_size: 0
+- num_generations: 8
+- max_steps: 1500
+- per_device_train_batch_size: 8
+- gradient_accumulation_steps: 1
+- learning_rate: 5e-6
+- max_prompt_length: 1024
+- max_completion_length: 1024
+- LoRA: r16 / alpha32 / dropout0.05
+- bf16: true
+- gradient_checkpointing: true
+- seed: 42
+- log: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1/logs/train.nohup.log`
+
+### Relaunch - Qwen3-4B Dr.GRPO Answer-only GSM8K
+
+- Relaunched at: 2026-05-24 22:07:00 UTC
+- Reason: previous nohup PID exited immediately before writing logs; relaunching detached with setsid.
+- GPU: 3
+- log: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1/logs/train.nohup.log`
+
+## Train - Qwen3-1.7B Dr.GRPO Answer-only GSM8K
+
+- Added at: 2026-05-24 22:15:25 UTC
+- Status: running
+- Server: EMNLP / GPU0
+- Script: `Answer_only_GRPO.py`
+- Model: `Qwen/Qwen3-1.7B`
+- Method: Dr.GRPO external baseline
+- Reward: answer-only correctness
+- loss_type: `dr_grpo`
+- scale_rewards: `none`
+- beta: `0.0`
+- output_dir: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1`
+- train_metadata_path: `outputs/gsm8k_full_train_seed42/selected_train_metadata.jsonl`
+- eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_valid_metadata.jsonl`
+- train_size: 7473
+- eval_size: 0
+- num_generations: 8
+- max_steps: 1500
+- per_device_train_batch_size: 8
+- gradient_accumulation_steps: 1
+- learning_rate: 5e-6
+- max_prompt_length: 1024
+- max_completion_length: 1024
+- LoRA: r16 / alpha32 / dropout0.05
+- bf16: true
+- gradient_checkpointing: true
+- seed: 42
+- log: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/logs/train.nohup.log`
+
+## Eval - Qwen3-1.7B Dr.GRPO Answer-only GSM8K Test
+
+- Added at: 2026-05-25 00:53:00 UTC
+- Status: running
+- Server: EMNLP / GPU0
+- Script: `eval_solver_checkpoint.py`
+- Model: `Qwen/Qwen3-1.7B`
+- Method: Dr.GRPO external baseline / answer-only correctness reward / dr_grpo loss
+- Adapter path: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1`
+- Eval metadata: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+- Output dir: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_vllm`
+- Backend: vLLM
+- Batch size: 64
+- Max prompt length: 2048
+- Max new tokens: 4096
+- Decoding: greedy / `--no_do_sample`
+- Seed: 42
+- Log: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_vllm/eval.log`
+
+### Relaunch Eval - Qwen3-1.7B Dr.GRPO Answer-only GSM8K Test
+
+- Relaunched at: 2026-05-25 00:54:31 UTC
+- Status: running
+- Reason: vLLM eval failed on this server due CUDA/FlashInfer Blackwell compatibility; rerunning with transformers backend.
+- Server: EMNLP / GPU0
+- Script: `eval_solver_checkpoint.py`
+- Model: `Qwen/Qwen3-1.7B`
+- Adapter path: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1`
+- Eval metadata: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+- Output dir: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_transformers`
+- Backend: transformers/default
+- Batch size: 16
+- Max prompt length: 2048
+- Max new tokens: 4096
+- Decoding: greedy / `--no_do_sample`
+- Seed: 42
+- Log: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_transformers/eval.log`
+
+### Finish - Qwen3-1.7B Dr.GRPO Answer-only GSM8K Train
+
+- Finished at: 2026-05-25 01:52:14 UTC
+- Status: completed
+- output_dir: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1`
+- final_checkpoint: `checkpoint-1500`
+- root_adapter_saved: true
+- checkpoint_list: checkpoint-100 checkpoint-200 checkpoint-300 checkpoint-400 checkpoint-500 checkpoint-600 checkpoint-700 checkpoint-800 checkpoint-900 checkpoint-1000 checkpoint-1100 checkpoint-1200 checkpoint-1300 checkpoint-1400 checkpoint-1500
+
+### Finish - Qwen3-4B Dr.GRPO Answer-only GSM8K Train
+
+- Finished at: 2026-05-25 01:52:14 UTC
+- Status: completed
+- output_dir: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1`
+- final_checkpoint: `checkpoint-1500`
+- root_adapter_saved: true
+- checkpoint_list: checkpoint-100 checkpoint-200 checkpoint-300 checkpoint-400 checkpoint-500 checkpoint-600 checkpoint-700 checkpoint-800 checkpoint-900 checkpoint-1000 checkpoint-1100 checkpoint-1200 checkpoint-1300 checkpoint-1400 checkpoint-1500
+
+### Finish Eval - Qwen3-1.7B Dr.GRPO Answer-only GSM8K Test
+
+- Finished at: 2026-05-25 01:52:14 UTC
+- Status: completed
+- Output dir: `outputs/drgrpo_answer_only_24h/qwen3_1p7b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_transformers`
+- Backend: transformers/default
+- Eval metadata: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+- Num examples: 1319
+- Correct: 1018
+- Accuracy: 77.18%
+- Format success rate: 99.85%
+- Max new tokens: 4096
+- Batch size: 16
+- Note: initial vLLM eval failed on this server due CUDA/FlashInfer Blackwell compatibility; transformers rerun completed.
+
+## Eval - Qwen3-4B Dr.GRPO Answer-only GSM8K Test
+
+- Added at: 2026-05-25 01:54:46 UTC
+- Status: running
+- Server: EMNLP / GPU0
+- Script: `eval_solver_checkpoint.py`
+- Model: `Qwen/Qwen3-4B`
+- Method: Dr.GRPO external baseline / answer-only correctness reward / dr_grpo loss
+- Adapter path: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1`
+- Eval metadata: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+- Output dir: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_transformers`
+- Backend: transformers/default
+- Batch size: 16
+- Max prompt length: 2048
+- Max new tokens: 4096
+- Decoding: greedy / `--no_do_sample`
+- Seed: 42
+- Log: `outputs/drgrpo_answer_only_24h/qwen3_4b_gsm8k_steps1500_n8_bsz8_acc1/eval_gsm8k_test_max4096_transformers/eval.log`

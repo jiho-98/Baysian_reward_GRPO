@@ -1,0 +1,351 @@
+# Experiment Results and Local Eval Configs
+
+Last updated: 2026-05-24 08:14:15 UTC
+
+This file records the current consolidated result board and the eval/test configs that are locally visible on this server.
+
+Notes:
+- The consolidated result board below is the current working table provided by the experiment owner.
+- `Average` is the mean of the displayed benchmark columns: GSM8K, MATH 500, Minerva, and OlympiadBench.
+- Local eval/test config inventory is detected from `outputs/**/summary.json` files that contain both `eval_metadata_path` and numeric `accuracy`.
+- Analyzer-data, metadata-builder, posterior-recompute, and diagnostic summaries are excluded from the local eval/test inventory.
+- Some consolidated results may come from another server; only the inventory section below is guaranteed to be backed by local summary files on this server.
+
+## Consolidated Result Board
+
+| Model | Method | GSM8K | MATH 500 | Minerva | OlympiadBench | Average |
+|---|---|---:|---:|---:|---:|---:|
+| Qwen3-1.7B | Pure-based | 51.48% | 50.00% | 4.04% | 6.23% | 27.94% |
+| Qwen3-1.7B | Base (Structured Prompt) | 77.71% | 60.60% | 15.07% | 24.33% | 44.43% |
+| Qwen3-1.7B | Answer-only GRPO | 77.26% | 60.20% | 14.71% | 26.41% | 44.65% |
+| Qwen3-1.7B | BPR-GRPO (Prompted Analyzer) | 79.61% | 62.60% | 16.54% | 29.67% | 47.11% |
+| Qwen3-1.7B | BPR-GRPO (Learned Analyzer) | 79.53% | 60.00% | 13.24% | 27.00% | 44.94% |
+| Qwen3-4B | Pure-based | 47.76% | 52.00% | 5.88% | 4.75% | 27.60% |
+| Qwen3-4B | Base (Structured Prompt) | 88.25% | 70.40% | 25.74% | 36.35% | 55.19% |
+| Qwen3-4B | Answer-only GRPO | 90.14% | 69.40% | 24.26% | 35.16% | 54.74% |
+| Qwen3-4B | BPR-GRPO (Prompted Analyzer) | 90.45% | 73.40% | 26.47% | 34.87% | 56.30% |
+| Qwen3-4B | BPR-GRPO (Learned Analyzer) | 90.67% | 72.80% | in-progress | in-progress | in-progress |
+| Qwen3-8B | Pure-based | 47.23% | 53.40% | 5.88% | 4.45% | 27.74% |
+| Qwen3-8B | Base (Structured Prompt) | 92.49% | 73.20% | 26.84% | 39.76% | 58.07% |
+| Qwen3-8B | Answer-only GRPO | 92.95% | 72.40% | 27.21% | 40.65% | 58.30% |
+| Qwen3-8B | BPR-GRPO (Prompted Analyzer) | 92.57% | 75.00% | 27.21% | 44.96% | 59.94% |
+| Qwen3-8B | BPR-GRPO (Learned Analyzer) | 91.89% | in-progress | in-progress | in-progress | in-progress |
+
+## Local Eval/Test Config Inventory
+
+Detected local eval/test summaries: 44
+
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/aime26_max4096_vllm/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `0 / 30` = `0.00%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/aime26_max4096_vllm_all4096_retest/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `1 / 30` = `3.33%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/aime26_max4096_vllm_rerun/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `1 / 30` = `3.33%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/minervamath_max1024_vllm/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `40 / 272` = `14.71%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/minervamath_max4096_vllm_all4096_retest/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `36 / 272` = `13.24%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/olympiadbench_max1024_vllm/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `171 / 674` = `25.37%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/eval_benchmarks/olympiadbench_max4096_vllm_all4096_retest/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `182 / 674` = `27.00%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm/math500_test500_max4096_vllm_after_resume/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/bigmath_qwen3_1p7b/bpr_grpo_sft_dpo_learned_analyzer_fulltrain12k_n8_steps1500_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl`
+  - result: `278 / 500` = `55.60%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`32`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b_base_prompted_eval_benchmarks/aime26/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `1 / 30` = `3.33%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b_base_prompted_eval_benchmarks/minervamath/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `41 / 272` = `15.07%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_1p7b_base_prompted_eval_benchmarks/olympiadbench/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `164 / 674` = `24.33%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm/eval_benchmarks/aime26/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `5 / 30` = `16.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`16`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm/eval_benchmarks/minervamath/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `72 / 272` = `26.47%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm/eval_benchmarks/olympiadbench/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `outputs/bigmath_qwen3_4b/grpo_bayesian_prompted_bigmath12x1024_n8_steps1536_bsz8_acc1_lambda1_vllm`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `235 / 674` = `34.87%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`vllm`, seed=`42`
+- `outputs/bigmath_qwen3_4b_base_prompted_eval_benchmarks/aime26/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `2 / 30` = `6.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_4b_base_prompted_eval_benchmarks/aime26_rerun/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `0 / 30` = `0.00%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_4b_base_prompted_eval_benchmarks/aime26_rerun_max4096/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `2 / 30` = `6.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_4b_base_prompted_eval_benchmarks/minervamath/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `70 / 272` = `25.74%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_4b_base_prompted_eval_benchmarks/olympiadbench/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `245 / 674` = `36.35%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_8b_base_prompted_eval_benchmarks/aime26/summary.json`
+  - model: `Qwen/Qwen3-8B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/aime26_metadata.jsonl`
+  - result: `2 / 30` = `6.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_8b_base_prompted_eval_benchmarks/minervamath/summary.json`
+  - model: `Qwen/Qwen3-8B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/minervamath_metadata.jsonl`
+  - result: `73 / 272` = `26.84%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/bigmath_qwen3_8b_base_prompted_eval_benchmarks/olympiadbench/summary.json`
+  - model: `Qwen/Qwen3-8B`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `base_model` / `False`
+  - eval_metadata_path: `outputs/eval_benchmarks/olympiadbench_metadata.jsonl`
+  - result: `268 / 674` = `39.76%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/base_qwen3b/test/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_test_metadata.jsonl`
+  - result: `968 / 1319` = `73.39%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/base_qwen3b/valid/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `none`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_valid_metadata.jsonl`
+  - result: `409 / 500` = `81.80%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_answer_only_qwen3b_train3000_n8_steps500/test/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_answer_only_qwen3b_train3000_n8_steps500`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_test_metadata.jsonl`
+  - result: `1031 / 1319` = `78.17%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_answer_only_qwen3b_train3000_n8_steps500/valid/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_answer_only_qwen3b_train3000_n8_steps500`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_valid_metadata.jsonl`
+  - result: `424 / 500` = `84.80%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_prompted_qwen3b_train3000_n8_steps500_lambda10/test/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_prompted_qwen3b_train3000_n8_steps500_lambda10`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_test_metadata.jsonl`
+  - result: `1057 / 1319` = `80.14%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_prompted_qwen3b_train3000_n8_steps500_lambda10/valid/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_prompted_qwen3b_train3000_n8_steps500_lambda10`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_valid_metadata.jsonl`
+  - result: `433 / 500` = `86.60%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_sft_analyzer_gsm8k_sft_dpo_grpo_v1/test/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_sft_analyzer_gsm8k_sft_dpo_grpo_v1`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_test_metadata.jsonl`
+  - result: `1052 / 1319` = `79.76%`
+  - decode/config: max_prompt_length=`1024`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_sft_analyzer_gsm8k_sft_dpo_grpo_v1/valid/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_sft_analyzer_gsm8k_sft_dpo_grpo_v1`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_valid_metadata.jsonl`
+  - result: `444 / 500` = `88.80%`
+  - decode/config: max_prompt_length=`1024`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_sft_dpo_analyzer_gsm8k_sft_dpo_grpo_v1/test/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_sft_dpo_analyzer_gsm8k_sft_dpo_grpo_v1`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_test_metadata.jsonl`
+  - result: `1098 / 1319` = `83.24%`
+  - decode/config: max_prompt_length=`1024`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_experiments/grpo_bayesian_sft_dpo_analyzer_gsm8k_sft_dpo_grpo_v1/valid/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/gsm8k_experiments/grpo_bayesian_sft_dpo_analyzer_gsm8k_sft_dpo_grpo_v1`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_3000_500_seed42/selected_valid_metadata.jsonl`
+  - result: `452 / 500` = `90.40%`
+  - decode/config: max_prompt_length=`1024`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_full_qwen3_1p7b/base_prompted/test/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `__base__`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1025 / 1319` = `77.71%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_full_qwen3_1p7b/grpo_answer_only/test/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_1p7b/grpo_answer_only`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1019 / 1319` = `77.26%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_prompted/test/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_prompted`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1050 / 1319` = `79.61%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_prompted/test_max4096_vllm/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_prompted`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1066 / 1319` = `80.82%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_sft_analyzer/test/summary.json`
+  - model: `Qwen/Qwen3-1.7B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_1p7b/grpo_bayesian_sft_analyzer`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1025 / 1319` = `77.71%`
+  - decode/config: max_prompt_length=`1024`, max_new_tokens=`1024`, batch_size=`32`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/gsm8k_full_qwen3_4b/grpo_bayesian_sft_dpo_analyzer_qwen4b_fulltrain_n8_steps1500_bsz8_acc1_lambda1/math500_test_max4096_vllm/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_4b/grpo_bayesian_sft_dpo_analyzer_qwen4b_fulltrain_n8_steps1500_bsz8_acc1_lambda1`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl`
+  - result: `373 / 500` = `74.60%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`4096`, batch_size=`64`, backend=`vllm`, seed=`42`
+- `outputs/gsm8k_full_qwen3_4b/grpo_bayesian_sft_dpo_analyzer_qwen4b_fulltrain_n8_steps1500_bsz8_acc1_lambda1/test/summary.json`
+  - model: `Qwen/Qwen3-4B`
+  - adapter_path: `outputs/gsm8k_full_qwen3_4b/grpo_bayesian_sft_dpo_analyzer_qwen4b_fulltrain_n8_steps1500_bsz8_acc1_lambda1`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/gsm8k_full_train_seed42/selected_test_metadata.jsonl`
+  - result: `1196 / 1319` = `90.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`32`, backend=`transformers`, seed=`42`
+- `outputs/learned_analyzer_solver_grpo/qwen3b_bigmath_3000_300_n8_steps500_lambda07/eval_eval300_bs16_deterministic/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/learned_analyzer_solver_grpo/qwen3b_bigmath_3000_300_n8_steps500_lambda07`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl`
+  - result: `180 / 300` = `60.00%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`16`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/learned_analyzer_solver_grpo/qwen3b_bigmath_3000_300_n8_steps500_lambda10/eval_eval300_bs16_deterministic/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/learned_analyzer_solver_grpo/qwen3b_bigmath_3000_300_n8_steps500_lambda10`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl`
+  - result: `175 / 300` = `58.33%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`16`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/learned_analyzer_solver_grpo_v1/qwen3b_bigmath_3000_300_n8_steps500_v1_lambda05/eval_eval300_bs16_deterministic/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/learned_analyzer_solver_grpo_v1/qwen3b_bigmath_3000_300_n8_steps500_v1_lambda05`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl`
+  - result: `176 / 300` = `58.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`16`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/learned_analyzer_solver_grpo_v1/qwen3b_bigmath_3000_300_n8_steps500_v1_lambda07/eval_eval300_bs16_deterministic/summary.json`
+  - model: `Qwen/Qwen2.5-3B-Instruct`
+  - adapter_path: `outputs/learned_analyzer_solver_grpo_v1/qwen3b_bigmath_3000_300_n8_steps500_v1_lambda07`
+  - checkpoint_type/load_adapter: `unknown` / `unknown`
+  - eval_metadata_path: `outputs/fair_bigmath_3000_300_seed42/selected_eval_metadata.jsonl`
+  - result: `170 / 300` = `56.67%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`16`, backend=`legacy/unspecified`, seed=`42`
+- `outputs/math500_experiments/grpo_answer_only_qwen3_8b_fulltrain12k_n8_steps1500/test/summary.json`
+  - model: `Qwen/Qwen3-8B`
+  - adapter_path: `outputs/math500_experiments/grpo_answer_only_qwen3_8b_fulltrain12k_n8_steps1500`
+  - checkpoint_type/load_adapter: `peft_adapter` / `True`
+  - eval_metadata_path: `outputs/math500_experiments/metadata_fulltrain12000_test500_seed42/selected_test_metadata.jsonl`
+  - result: `362 / 500` = `72.40%`
+  - decode/config: max_prompt_length=`2048`, max_new_tokens=`1024`, batch_size=`16`, backend=`legacy/unspecified`, seed=`42`
+
+## Local Config Gaps and Caveats
+
+- No local summary was found for `Qwen3-8B Answer-only GRPO` on AIME26, MinervaMath, or OlympiadBench. The local 8B AIME/Minerva/Olympiad summaries under `outputs/bigmath_qwen3_8b_base_prompted_eval_benchmarks/` are base-model evaluations with `adapter_path: none`.
+- Some legacy summaries do not record `checkpoint_type`, `load_adapter`, or `inference_backend`; those fields are marked `unknown` or `legacy/unspecified`.
+- Repeated evaluations are intentionally preserved when they used different max-token budgets or rerun directories.

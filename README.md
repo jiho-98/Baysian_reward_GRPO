@@ -180,6 +180,49 @@ python eval_fair_compare_adapters.py \
   --output_dir outputs/eval_fair_answer_vs_bayesian_ah080_vs_full_300
 ```
 
+### Analyzer DPO workflow
+
+Prepare DPO pairs from solver debug traces:
+
+```bash
+python prepare_unified_analyzer_dpo.py \
+  --input_debug_jsonl outputs/your_solver_run/bayesian_reward_debug.jsonl \
+  --expected_prior_lambda 0.7 \
+  --output_dir outputs/unified_analyzer_dpo_v0
+```
+
+Option A: Base Qwen -> Analyzer DPO
+
+```bash
+python train_unified_analyzer_dpo.py \
+  --model_name Qwen/Qwen2.5-3B-Instruct \
+  --train_path outputs/unified_analyzer_dpo_v0/unified_dpo_train.jsonl \
+  --val_path outputs/unified_analyzer_dpo_v0/unified_dpo_val.jsonl \
+  --output_dir outputs/analyzer_dpo_base_qwen
+```
+
+Option B: v0 SFT Analyzer -> Analyzer DPO
+
+```bash
+python train_unified_analyzer_dpo.py \
+  --model_name Qwen/Qwen2.5-3B-Instruct \
+  --train_path outputs/unified_analyzer_dpo_v0/unified_dpo_train.jsonl \
+  --val_path outputs/unified_analyzer_dpo_v0/unified_dpo_val.jsonl \
+  --init_adapter_path outputs/unified_analyzer_sft_v0/checkpoint-XXX \
+  --output_dir outputs/analyzer_dpo_from_sft_v0
+```
+
+Cheap filter before solver GRPO:
+
+```bash
+python run_unified_analyzer_dpo_filter.py \
+  --model_name Qwen/Qwen2.5-3B-Instruct \
+  --adapter_path outputs/analyzer_dpo_base_qwen \
+  --input_debug_jsonl outputs/your_solver_run/bayesian_reward_debug.jsonl \
+  --baseline_summary_json outputs/v0_lambda07_filter/lambda_0p7/summary.json \
+  --output_dir outputs/analyzer_dpo_base_qwen_filter
+```
+
 ## Notes and Summaries
 
 Current internal summaries are tracked as text files:

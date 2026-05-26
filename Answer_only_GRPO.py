@@ -198,6 +198,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--logging_steps", type=int, default=5)
     parser.add_argument("--save_steps", type=int, default=100)
     parser.add_argument(
+        "--loss_type",
+        choices=[
+            "grpo",
+            "dapo",
+            "bnpo",
+            "dr_grpo",
+            "cispo",
+            "sapo",
+            "vespo",
+            "luspo",
+        ],
+        default=None,
+        help="Optional TRL GRPO loss formulation override. If omitted, the installed TRL default is used.",
+    )
+    parser.add_argument("--scale_rewards", choices=["group", "batch", "none"], default=None)
+    parser.add_argument("--importance_sampling_level", choices=["token", "sequence"], default=None)
+    parser.add_argument("--epsilon", type=float, default=None)
+    parser.add_argument("--epsilon_high", type=float, default=None)
+    parser.add_argument("--beta", type=float, default=None)
+    parser.add_argument(
         "--progress_interval_percent",
         type=int,
         default=10,
@@ -1380,6 +1400,18 @@ def create_grpo_config(args: argparse.Namespace, GRPOConfig: Any) -> tuple[Any, 
         "report_to": "none",
         "seed": args.seed,
     }
+    optional_grpo_config_fields = (
+        "loss_type",
+        "scale_rewards",
+        "importance_sampling_level",
+        "epsilon",
+        "epsilon_high",
+        "beta",
+    )
+    for field_name in optional_grpo_config_fields:
+        field_value = getattr(args, field_name, None)
+        if field_value is not None:
+            config_kwargs[field_name] = field_value
     if getattr(args, "use_vllm", False):
         config_kwargs.update(
             {
@@ -1512,6 +1544,12 @@ def build_training_config_payload(
         "gradient_accumulation_steps": args.gradient_accumulation_steps,
         "logging_steps": args.logging_steps,
         "save_steps": args.save_steps,
+        "loss_type": getattr(args, "loss_type", None),
+        "scale_rewards": getattr(args, "scale_rewards", None),
+        "importance_sampling_level": getattr(args, "importance_sampling_level", None),
+        "epsilon": getattr(args, "epsilon", None),
+        "epsilon_high": getattr(args, "epsilon_high", None),
+        "beta": getattr(args, "beta", None),
         "progress_interval_percent": args.progress_interval_percent,
         "use_lora": args.use_lora,
         "lora_r": args.lora_r,
