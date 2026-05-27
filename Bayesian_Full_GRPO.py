@@ -866,6 +866,37 @@ def parse_evidence_assessment(parsed: Any) -> tuple[Optional[EvidenceAssessment]
     )
 
 
+def repair_evidence_judge_schema(
+    parsed: Any,
+    *,
+    answer_correctness: float,
+) -> tuple[Any, list[str]]:
+    if not isinstance(parsed, dict):
+        return parsed, []
+
+    error_type = str(parsed.get("error_type", "")).strip()
+    if error_type != "deterministic_correctness_flag":
+        return parsed, []
+
+    repaired = dict(parsed)
+    if answer_correctness >= 1.0:
+        scores = [
+            clamp_score_0_to_4(parsed.get("step_validity")),
+            clamp_score_0_to_4(parsed.get("proof_completeness")),
+            clamp_score_0_to_4(parsed.get("strategy_compliance")),
+            clamp_score_0_to_4(parsed.get("consistency")),
+        ]
+        repaired_error_type = "correct_complete" if min(scores) >= 3 else "correct_weak_proof"
+    else:
+        repaired_error_type = "finalization_error"
+
+    repaired["error_type"] = repaired_error_type
+    return repaired, [
+        "repaired_error_type:deterministic_correctness_flag"
+        f"->{repaired_error_type}"
+    ]
+
+
 def enforce_evidence_label_consistency(
     evidence: EvidenceAssessment,
     *,
@@ -1302,6 +1333,14 @@ class BayesianRewardScorer:
                 aggregated_reasons.extend(reasons)
                 print(f"[WARN] evidence judge JSON parse failed on attempt {attempt}: {reasons}")
                 continue
+
+            parsed_json, repair_reasons = repair_evidence_judge_schema(
+                parsed_json,
+                answer_correctness=answer_correctness,
+            )
+            if repair_reasons:
+                aggregated_reasons.extend(repair_reasons)
+                last_parsed_json = parsed_json
 
             evidence, reasons = parse_evidence_assessment(parsed_json)
             if evidence is None:
