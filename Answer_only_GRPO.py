@@ -1363,6 +1363,18 @@ def filter_supported_kwargs(callable_obj: Any, kwargs: dict[str, Any]) -> tuple[
     return filtered, dropped
 
 
+def normalize_scale_rewards_for_grpo_config(GRPOConfig: Any, value: Any) -> Any:
+    parameter = inspect.signature(GRPOConfig.__init__).parameters.get("scale_rewards")
+    if parameter is None:
+        return value
+    if isinstance(parameter.default, bool):
+        if value == "none":
+            return False
+        if value in {"group", "batch"}:
+            return True
+    return value
+
+
 def build_peft_config(args: argparse.Namespace):
     if not args.use_lora:
         return None
@@ -1447,6 +1459,8 @@ def create_grpo_config(args: argparse.Namespace, GRPOConfig: Any) -> tuple[Any, 
     ):
         optional_value = getattr(args, optional_key, None)
         if optional_value is not None:
+            if optional_key == "scale_rewards":
+                optional_value = normalize_scale_rewards_for_grpo_config(GRPOConfig, optional_value)
             config_kwargs[optional_key] = optional_value
     filtered_kwargs, dropped = filter_supported_kwargs(GRPOConfig.__init__, config_kwargs)
     return GRPOConfig(**filtered_kwargs), dropped
